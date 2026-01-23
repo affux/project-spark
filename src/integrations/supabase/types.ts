@@ -1989,6 +1989,29 @@ export type Database = {
           is_online: boolean
         }[]
       }
+      get_dropshipper_orders_masked: {
+        Args: never
+        Returns: {
+          base_price: number
+          completed_at: string
+          created_at: string
+          customer_address_masked: string
+          customer_email_masked: string
+          customer_name_masked: string
+          customer_phone_masked: string
+          dropshipper_user_id: string
+          id: string
+          order_number: string
+          paid_at: string
+          payment_link: string
+          payment_link_clicked_at: string
+          quantity: number
+          selling_price: number
+          status: string
+          storefront_product_id: string
+          updated_at: string
+        }[]
+      }
       get_kyc_status: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["kyc_status"]
