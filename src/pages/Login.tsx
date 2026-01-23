@@ -14,6 +14,8 @@ import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { z } from 'zod';
 import { useLoginRateLimit } from '@/hooks/useLoginRateLimit';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Email validation schema
 const emailSchema = z.string().trim().email({ message: 'Please enter a valid email address' });
@@ -334,18 +336,24 @@ const Login: React.FC = () => {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center lg:text-left">
-            <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xl">A</span>
+      <div className="flex-1 flex flex-col p-8 bg-background">
+        {/* Language selector at top right */}
+        <div className="flex justify-end mb-4">
+          <LanguageSelector />
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-md space-y-8">
+            <div className="text-center lg:text-left">
+              <div className="lg:hidden flex justify-center mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-xl">A</span>
+                </div>
               </div>
-            </div>
-            <h2 className="text-3xl font-bold text-foreground">Welcome back</h2>
-            <p className="mt-2 text-muted-foreground">
-              Sign in to access your dashboard
-            </p>
+              <h2 className="text-3xl font-bold text-foreground">Welcome back</h2>
+              <p className="mt-2 text-muted-foreground">
+                Sign in to access your dashboard
+              </p>
             {isMFAEnabled && (
               <div className="mt-3 flex items-center gap-2 text-xs text-primary">
                 <Shield className="w-3 h-3" />
@@ -505,6 +513,7 @@ const Login: React.FC = () => {
               <p className="text-sm font-medium text-foreground mb-1">Dropshipper Access</p>
               <p className="text-xs text-muted-foreground">john@reseller.com / password123</p>
             </div>
+          </div>
           </div>
         </div>
       </div>

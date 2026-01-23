@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Store, Users, ShoppingCart, Shield, Zap, BarChart3, Play, AlertCircle, Sparkles, ChevronRight, Heart, Package, Globe, TrendingUp, Truck, CreditCard, Headphones, Clock, CheckCircle, DollarSign, Layers, X, Check, Flame, Star, Crown, Mail, Lock, Award, BadgeCheck, ShieldCheck, Verified, MessageCircle, Phone, BookOpen, FileText, Video, Lightbulb, ExternalLink } from 'lucide-react';
 import { usePublicBrandingSettings } from '@/hooks/usePublicBrandingSettings';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Accordion,
@@ -17,6 +18,7 @@ import { AnimatedSection } from '@/components/landing/AnimatedSection';
 import { TrustedBrandsSection } from '@/components/landing/TrustedBrands';
 import { AnimatedCounter } from '@/components/landing/AnimatedCounter';
 import { ContactForm } from '@/components/landing/ContactForm';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Product images
 import wirelessEarbudsImg from '@/assets/products/wireless-earbuds.jpg';
@@ -196,6 +198,7 @@ const Index: React.FC = () => {
             <span className="font-bold text-xl text-foreground">{siteName}</span>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <ThemeToggle />
             <Button asChild variant="outline" className="rounded-full">
               <Link to="/track">
