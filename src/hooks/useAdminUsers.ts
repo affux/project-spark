@@ -10,6 +10,7 @@ export type UserLevel = 'bronze' | 'silver' | 'gold';
 export interface ResetOptions {
   orders?: boolean;
   walletTransactions?: boolean;
+  walletBalance?: boolean;
   storefrontProducts?: boolean;
   proofOfWork?: boolean;
   payoutRequests?: boolean;
