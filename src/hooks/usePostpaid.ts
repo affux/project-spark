@@ -24,6 +24,7 @@ export interface PostpaidProfile {
   postpaid_credit_limit: number;
   postpaid_used: number;
   postpaid_due_cycle: number | null;
+  postpaid_wallet_enabled: boolean;
 }
 
 export interface PostpaidStatus {
@@ -34,6 +35,7 @@ export interface PostpaidStatus {
   outstandingDues: number;
   dueCycle: number | null;
   canRequestPayout: boolean;
+  walletPaymentEnabled: boolean;
 }
 
 export const usePostpaid = () => {
@@ -47,7 +49,7 @@ export const usePostpaid = () => {
     queryFn: async (): Promise<PostpaidStatus & { hasOutstandingDues: boolean }> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('postpaid_enabled, postpaid_credit_limit, postpaid_used, postpaid_due_cycle')
+        .select('postpaid_enabled, postpaid_credit_limit, postpaid_used, postpaid_due_cycle, postpaid_wallet_enabled')
         .eq('user_id', user?.id)
         .single();
 
@@ -75,6 +77,8 @@ export const usePostpaid = () => {
         canRequestPayout: profile.postpaid_used === 0,
         // Track if user has outstanding dues even when postpaid is disabled
         hasOutstandingDues: profile.postpaid_used > 0,
+        // Per-user wallet payment setting
+        walletPaymentEnabled: profile.postpaid_wallet_enabled,
       };
     },
     enabled: !!user?.id && !!session,
@@ -201,7 +205,7 @@ export const useAdminPostpaid = () => {
       
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, name, email, postpaid_enabled, postpaid_credit_limit, postpaid_used, postpaid_due_cycle, wallet_balance, allow_payout_with_dues')
+        .select('user_id, name, email, postpaid_enabled, postpaid_credit_limit, postpaid_used, postpaid_due_cycle, wallet_balance, allow_payout_with_dues, postpaid_wallet_enabled')
         .in('user_id', userIds)
         .order('name');
 
@@ -218,6 +222,7 @@ export const useAdminPostpaid = () => {
         wallet_balance: Number(p.wallet_balance),
         available_credit: Math.max(0, Number(p.postpaid_credit_limit) - Number(p.postpaid_used)),
         allow_payout_with_dues: Boolean(p.allow_payout_with_dues),
+        postpaid_wallet_enabled: Boolean(p.postpaid_wallet_enabled),
       }));
     },
     enabled: !!user && user.role === 'admin' && !!session,
@@ -422,6 +427,32 @@ export const useAdminPostpaid = () => {
     },
   });
 
+  // Toggle wallet payment enabled for a user
+  const toggleWalletPaymentMutation = useMutation({
+    mutationFn: async ({ userId, enabled }: { userId: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ postpaid_wallet_enabled: enabled })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { enabled }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-postpaid-users'] });
+      toast({
+        title: enabled ? 'Wallet Payment Enabled' : 'Wallet Payment Disabled',
+        description: `User ${enabled ? 'can now' : 'can no longer'} use wallet balance to pay postpaid dues.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update wallet payment setting.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return {
     users: usersWithPostpaidQuery.data || [],
     isLoading: usersWithPostpaidQuery.isLoading,
@@ -437,5 +468,7 @@ export const useAdminPostpaid = () => {
     isUpdatingDueCycle: updateDueCycleMutation.isPending,
     toggleAllowPayoutWithDues: toggleAllowPayoutWithDuesMutation.mutate,
     isTogglingAllowPayoutWithDues: toggleAllowPayoutWithDuesMutation.isPending,
+    toggleWalletPayment: toggleWalletPaymentMutation.mutate,
+    isTogglingWalletPayment: toggleWalletPaymentMutation.isPending,
   };
 };

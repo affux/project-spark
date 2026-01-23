@@ -70,6 +70,7 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
     wallet_balance: number;
     available_credit: number;
     allow_payout_with_dues: boolean;
+    postpaid_wallet_enabled: boolean;
   } | null>(null);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
@@ -99,6 +100,8 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
     fetchUserTransactions,
     toggleAllowPayoutWithDues,
     isTogglingAllowPayoutWithDues,
+    toggleWalletPayment,
+    isTogglingWalletPayment,
   } = useAdminPostpaid();
 
   const { settingsMap, updateSetting, isUpdating } = usePlatformSettings();
@@ -323,6 +326,7 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
                   <TableHead>Used</TableHead>
                   <TableHead>Available</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Wallet Payment</TableHead>
                   <TableHead>Payout with Dues</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -330,7 +334,7 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -386,6 +390,20 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
                             Disabled
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.postpaid_wallet_enabled}
+                            onCheckedChange={(enabled) => 
+                              toggleWalletPayment({ userId: user.user_id, enabled })
+                            }
+                            disabled={isTogglingWalletPayment || !isWalletPaymentEnabled}
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {user.postpaid_wallet_enabled ? 'On' : 'Off'}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

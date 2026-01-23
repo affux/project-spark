@@ -96,8 +96,10 @@ export const PostpaidSidePanel: React.FC<PostpaidSidePanelProps> = ({ open, onOp
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   const walletBalance = Number(profile?.wallet_balance ?? 0);
 
-  // Check if wallet payment is enabled for postpaid
-  const isWalletPaymentEnabled = String(settingsMap.postpaid_wallet_payment_enabled) !== 'false';
+  // Check if wallet payment is enabled: must be enabled globally AND for this user
+  const isGlobalWalletPaymentEnabled = String(settingsMap.postpaid_wallet_payment_enabled) !== 'false';
+  const isUserWalletPaymentEnabled = postpaidStatus?.walletPaymentEnabled !== false;
+  const isWalletPaymentEnabled = isGlobalWalletPaymentEnabled && isUserWalletPaymentEnabled;
 
   // Get enabled crypto wallets
   const enabledWallets = settingsMap.crypto_wallets?.filter(w => w.enabled) || [];
