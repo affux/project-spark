@@ -62,42 +62,81 @@ serve(async (req) => {
     const resetOptions: ResetOptions = options || {};
     const deletedCounts: Record<string, number> = {};
 
+    // Get all order IDs for this user first (needed for multiple deletions)
+    const { data: userOrders } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('dropshipper_user_id', userId);
+    
+    const orderIds = userOrders?.map(o => o.id) || [];
+    console.log(`Found ${orderIds.length} orders for user ${userId}`);
+
     // Delete orders and related data
-    if (resetOptions.orders) {
-      // First delete order chat messages
-      const { data: deletedOrderChat } = await supabase
+    if (resetOptions.orders && orderIds.length > 0) {
+      // 1. Delete order chat audit logs (references order_chat_messages and orders)
+      const { error: auditError } = await supabase
+        .from('order_chat_audit_logs')
+        .delete()
+        .in('order_id', orderIds);
+      if (auditError) console.log('order_chat_audit_logs delete error:', auditError.message);
+
+      // 2. Delete order chat messages (references orders)
+      const { data: deletedOrderChat, error: chatError } = await supabase
         .from('order_chat_messages')
         .delete()
-        .eq('sender_user_id', userId)
+        .in('order_id', orderIds)
         .select('id');
+      if (chatError) console.log('order_chat_messages delete error:', chatError.message);
       
-      // Delete order status history for user's orders
-      const { data: userOrders } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('dropshipper_user_id', userId);
+      // 3. Delete order status history (references orders)
+      const { error: historyError } = await supabase
+        .from('order_status_history')
+        .delete()
+        .in('order_id', orderIds);
+      if (historyError) console.log('order_status_history delete error:', historyError.message);
       
-      if (userOrders && userOrders.length > 0) {
-        const orderIds = userOrders.map(o => o.id);
-        await supabase
-          .from('order_status_history')
-          .delete()
-          .in('order_id', orderIds);
-        
-        await supabase
-          .from('order_customer_names')
-          .delete()
-          .in('order_id', orderIds);
-      }
+      // 4. Delete order customer names (references orders)
+      const { error: namesError } = await supabase
+        .from('order_customer_names')
+        .delete()
+        .in('order_id', orderIds);
+      if (namesError) console.log('order_customer_names delete error:', namesError.message);
+
+      // 5. Update crypto_payments to remove order_id reference (nullable FK)
+      const { error: cryptoError } = await supabase
+        .from('crypto_payments')
+        .update({ order_id: null })
+        .in('order_id', orderIds);
+      if (cryptoError) console.log('crypto_payments update error:', cryptoError.message);
+
+      // 6. Update wallet_transactions to remove order_id reference (nullable FK)
+      const { error: walletError } = await supabase
+        .from('wallet_transactions')
+        .update({ order_id: null })
+        .in('order_id', orderIds);
+      if (walletError) console.log('wallet_transactions update error:', walletError.message);
+
+      // 7. Update postpaid_transactions to remove order_id reference (nullable FK)
+      const { error: postpaidError } = await supabase
+        .from('postpaid_transactions')
+        .update({ order_id: null })
+        .in('order_id', orderIds);
+      if (postpaidError) console.log('postpaid_transactions update error:', postpaidError.message);
       
-      // Delete orders
-      const { data: deletedOrders } = await supabase
+      // 8. Now delete orders
+      const { data: deletedOrders, error: ordersError } = await supabase
         .from('orders')
         .delete()
         .eq('dropshipper_user_id', userId)
         .select('id');
       
-      deletedCounts.orders = (deletedOrders?.length || 0) + (deletedOrderChat?.length || 0);
+      if (ordersError) {
+        console.log('orders delete error:', ordersError.message);
+        throw new Error(`Failed to delete orders: ${ordersError.message}`);
+      }
+      
+      deletedCounts.orders = deletedOrders?.length || 0;
+      console.log(`Deleted ${deletedCounts.orders} orders`);
     }
 
     // Delete wallet transactions and reset balance
@@ -119,13 +158,44 @@ serve(async (req) => {
 
     // Delete storefront products
     if (resetOptions.storefrontProducts) {
-      const { data: deleted } = await supabase
+      // First need to check if any orders reference these products
+      // Get storefront product IDs
+      const { data: sfProducts } = await supabase
         .from('storefront_products')
-        .delete()
-        .eq('user_id', userId)
-        .select('id');
+        .select('id')
+        .eq('user_id', userId);
       
-      deletedCounts.storefront_products = deleted?.length || 0;
+      if (sfProducts && sfProducts.length > 0) {
+        const sfProductIds = sfProducts.map(p => p.id);
+        
+        // Check for orders referencing these products
+        const { data: ordersWithProducts } = await supabase
+          .from('orders')
+          .select('id')
+          .in('storefront_product_id', sfProductIds);
+        
+        if (ordersWithProducts && ordersWithProducts.length > 0) {
+          console.log(`Cannot delete storefront products - ${ordersWithProducts.length} orders reference them`);
+          // Skip deletion, products are referenced
+          deletedCounts.storefront_products = 0;
+        } else {
+          // Also delete product reviews for these storefront products
+          await supabase
+            .from('product_reviews')
+            .delete()
+            .in('storefront_product_id', sfProductIds);
+
+          const { data: deleted } = await supabase
+            .from('storefront_products')
+            .delete()
+            .eq('user_id', userId)
+            .select('id');
+          
+          deletedCounts.storefront_products = deleted?.length || 0;
+        }
+      } else {
+        deletedCounts.storefront_products = 0;
+      }
     }
 
     // Delete proof of work submissions
@@ -188,6 +258,12 @@ serve(async (req) => {
 
     // Delete chat messages and sessions
     if (resetOptions.chatMessages) {
+      // Delete chat reassignment logs first (references chat_sessions)
+      await supabase
+        .from('chat_reassignment_logs')
+        .delete()
+        .eq('user_id', userId);
+
       const { data: deletedMsgs } = await supabase
         .from('chat_messages')
         .delete()
