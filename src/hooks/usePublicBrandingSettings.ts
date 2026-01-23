@@ -44,13 +44,13 @@ export const usePublicBrandingSettings = () => {
       }
 
       const settings: PublicBrandingSettings = {
-        site_name: 'DropShip',
-        site_title: 'DropShip',
+        site_name: 'AFFUX',
+        site_title: 'AFFUX',
         site_favicon_url: '',
         site_logo_url: '',
         landing_page_enabled: true,
-        landing_page_title: 'Launch Your Dropshipping Empire',
-        landing_page_subtitle: 'The all-in-one dropshipping platform to source products from global suppliers, automate fulfillment, and scale your e-commerce business without inventory.',
+        landing_page_title: 'Welcome to AFFUX',
+        landing_page_subtitle: 'Your trusted partner for professional dropshipping solutions. Start your journey with AFFUX today.',
         landing_video_url: '',
         footer_text: '© {year} {site_name}. All rights reserved.',
         faq_items: [],
@@ -105,18 +105,18 @@ export const usePublicBrandingSettings = () => {
 
       return settings;
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 30, // Cache for 30 seconds for faster updates
   });
 
   return {
     settings: query.data || {
-      site_name: 'DropShip',
-      site_title: 'DropShip',
+      site_name: 'AFFUX',
+      site_title: 'AFFUX',
       site_favicon_url: '',
       site_logo_url: '',
       landing_page_enabled: true,
-      landing_page_title: 'Launch Your Dropshipping Empire',
-      landing_page_subtitle: 'The all-in-one dropshipping platform to source products from global suppliers, automate fulfillment, and scale your e-commerce business without inventory.',
+      landing_page_title: 'Welcome to AFFUX',
+      landing_page_subtitle: 'Your trusted partner for professional dropshipping solutions. Start your journey with AFFUX today.',
       landing_video_url: '',
       footer_text: '© {year} {site_name}. All rights reserved.',
       faq_items: [],
