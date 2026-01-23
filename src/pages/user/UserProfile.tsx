@@ -5,13 +5,16 @@ import { MFASettings } from '@/components/mfa/MFASettings';
 import { UserEmail2FASettings } from '@/components/user/UserEmail2FASettings';
 import { LoginActivityLog } from '@/components/user/LoginActivityLog';
 import { ThemeSelectorCard } from '@/components/ThemeSelector';
+import { LanguageSelectorCard } from '@/components/LanguageSelector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Palette } from 'lucide-react';
+import { Palette, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Navigate } from 'react-router-dom';
 
 const UserProfile: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const { t } = useLanguage();
 
   if (isLoading) {
     return (
@@ -31,9 +34,9 @@ const UserProfile: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('profile.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            View your profile information, security settings, and activity.
+            {t('profile.description')}
           </p>
         </div>
         
@@ -46,14 +49,30 @@ const UserProfile: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Palette className="w-5 h-5" />
-                  Appearance
+                  {t('profile.appearance')}
                 </CardTitle>
                 <CardDescription>
-                  Choose your preferred theme for the dashboard
+                  {t('profile.appearance_desc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ThemeSelectorCard />
+              </CardContent>
+            </Card>
+            
+            {/* Language Selector Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  {t('profile.language')}
+                </CardTitle>
+                <CardDescription>
+                  {t('profile.language_desc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LanguageSelectorCard />
               </CardContent>
             </Card>
           </div>
