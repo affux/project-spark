@@ -9,6 +9,7 @@ const corsHeaders = {
 interface ResetOptions {
   orders?: boolean;
   walletTransactions?: boolean;
+  walletBalance?: boolean;
   storefrontProducts?: boolean;
   proofOfWork?: boolean;
   payoutRequests?: boolean;
@@ -139,7 +140,7 @@ serve(async (req) => {
       console.log(`Deleted ${deletedCounts.orders} orders`);
     }
 
-    // Delete wallet transactions and reset balance
+    // Delete wallet transactions (without resetting balance - that's a separate option)
     if (resetOptions.walletTransactions) {
       const { data: deleted } = await supabase
         .from('wallet_transactions')
@@ -147,13 +148,17 @@ serve(async (req) => {
         .eq('user_id', userId)
         .select('id');
       
-      // Also reset wallet balance
+      deletedCounts.wallet_transactions = deleted?.length || 0;
+    }
+
+    // Reset wallet balance only
+    if (resetOptions.walletBalance) {
       await supabase
         .from('profiles')
         .update({ wallet_balance: 0 })
         .eq('user_id', userId);
       
-      deletedCounts.wallet_transactions = deleted?.length || 0;
+      deletedCounts.wallet_balance_reset = 1;
     }
 
     // Delete storefront products

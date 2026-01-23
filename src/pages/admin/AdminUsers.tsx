@@ -137,6 +137,7 @@ const AdminUsers: React.FC = () => {
   const [resetOptions, setResetOptions] = useState<ResetOptions>({
     orders: true,
     walletTransactions: true,
+    walletBalance: true,
     storefrontProducts: true,
     proofOfWork: true,
     payoutRequests: true,
@@ -186,6 +187,7 @@ const AdminUsers: React.FC = () => {
         setResetOptions({
           orders: true,
           walletTransactions: true,
+          walletBalance: true,
           storefrontProducts: true,
           proofOfWork: true,
           payoutRequests: true,
@@ -1061,6 +1063,7 @@ const AdminUsers: React.FC = () => {
                         setResetOptions({
                           orders: true,
                           walletTransactions: true,
+                          walletBalance: true,
                           storefrontProducts: true,
                           proofOfWork: true,
                           payoutRequests: true,
@@ -1093,6 +1096,7 @@ const AdminUsers: React.FC = () => {
                           setResetOptions({
                             orders: !allSelected,
                             walletTransactions: !allSelected,
+                            walletBalance: !allSelected,
                             storefrontProducts: !allSelected,
                             proofOfWork: !allSelected,
                             payoutRequests: !allSelected,
@@ -1137,6 +1141,20 @@ const AdminUsers: React.FC = () => {
                             <span className="text-amber-700 dark:text-amber-300">Wallet Transactions</span>
                           </div>
                           <span className="font-mono font-semibold text-amber-700 dark:text-amber-300">{resetDataCounts.transactions}</span>
+                        </label>
+                        
+                        {/* Wallet Balance */}
+                        <label className="flex items-center justify-between p-2 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={resetOptions.walletBalance}
+                              onCheckedChange={(checked) => setResetOptions(prev => ({ ...prev, walletBalance: !!checked }))}
+                            />
+                            <span className="text-amber-700 dark:text-amber-300">Wallet Balance</span>
+                          </div>
+                          <span className="font-mono font-semibold text-amber-700 dark:text-amber-300">
+                            ${selectedUser?.wallet_balance?.toFixed(2) || '0.00'}
+                          </span>
                         </label>
                         
                         {/* Storefront Products */}
