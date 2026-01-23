@@ -23,6 +23,7 @@ const actionTypeLabels: Record<string, { label: string; variant: 'default' | 'se
   order_placed: { label: 'Order Placed', variant: 'outline' },
   payout_request: { label: 'Payout Request', variant: 'outline' },
   profile_update: { label: 'Profile Update', variant: 'secondary' },
+  postpaid_repayment: { label: 'Postpaid Repayment', variant: 'default' },
 };
 
 export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn = true }) => {

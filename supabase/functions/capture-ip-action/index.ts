@@ -11,7 +11,8 @@ type IPActionType =
   | "logout"
   | "order_placed"
   | "payout_request"
-  | "profile_update";
+  | "profile_update"
+  | "postpaid_repayment";
 
 function getClientIp(req: Request): string | null {
   const forwardedFor = req.headers.get("x-forwarded-for");
@@ -63,6 +64,7 @@ serve(async (req) => {
       "order_placed",
       "payout_request",
       "profile_update",
+      "postpaid_repayment",
     ]);
 
     if (!actionType || !allowed.has(actionType)) {
