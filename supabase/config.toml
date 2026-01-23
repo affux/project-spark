@@ -1,11 +1,5 @@
 project_id = "pjfhkopecutrxebrfnqh"
 
-[functions.check-admin-exists]
-verify_jwt = false
-
-[functions.create-first-admin]
-verify_jwt = false
-
 [functions.admin-reset-password]
 verify_jwt = false
 
@@ -21,13 +15,13 @@ verify_jwt = false
 [functions.chat-reassignment]
 verify_jwt = false
 
-[functions.cj-product-search]
+[functions.check-admin-exists]
 verify_jwt = false
 
 [functions.confirm-user-email]
 verify_jwt = false
 
-[functions.create-public-order]
+[functions.create-first-admin]
 verify_jwt = false
 
 [functions.delete-user]
@@ -43,6 +37,33 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.process-wallet-payment]
+verify_jwt = false
+
+[functions.reset-user-data]
+verify_jwt = false
+
+[functions.send-chat-failure-notification]
+verify_jwt = false
+
+[functions.send-login-alert]
+verify_jwt = false
+
+[functions.send-mfa-email]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.send-postpaid-due-reminder]
+verify_jwt = false
+
+[functions.validate-ifsc]
+verify_jwt = false
+
+[functions.create-public-order]
+verify_jwt = false
+
+[functions.cj-product-search]
 verify_jwt = false
 
 [functions.reset-user-data]
