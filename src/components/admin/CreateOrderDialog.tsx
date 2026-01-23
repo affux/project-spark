@@ -27,6 +27,7 @@ interface DropshipperUser {
   name: string;
   email: string;
   storefront_name: string | null;
+  user_status: string;
 }
 
 interface StorefrontProduct {
@@ -98,12 +99,12 @@ export const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({
 
         const userIds = userRoles.map(r => r.user_id);
 
-        // Get profiles for those users
+        // Get profiles for those users - show all users for admin, not just approved
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('user_id, name, email, storefront_name')
+          .select('user_id, name, email, storefront_name, user_status')
           .in('user_id', userIds)
-          .eq('user_status', 'approved');
+          .order('name');
 
         setDropshippers(profiles || []);
       } catch (error) {
@@ -239,7 +240,10 @@ export const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({
               <SelectContent>
                 {dropshippers.map((dropshipper) => (
                   <SelectItem key={dropshipper.user_id} value={dropshipper.user_id}>
-                    {dropshipper.name} ({dropshipper.email})
+                    {dropshipper.name} ({dropshipper.email}) 
+                    {dropshipper.user_status !== 'approved' && (
+                      <span className="ml-1 text-xs text-warning">({dropshipper.user_status})</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
