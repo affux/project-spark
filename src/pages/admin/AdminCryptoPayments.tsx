@@ -551,19 +551,6 @@ const AdminCryptoPayments: React.FC = () => {
                       <p className="font-mono text-xs break-all">{selectedPayment.transaction_hash}</p>
                     </div>
                   )}
-                  {selectedPayment.payment_proof_url && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">Payment Proof:</span>
-                      <div className="mt-2 border rounded-lg overflow-hidden bg-muted/30">
-                        <img 
-                          src={selectedPayment.payment_proof_url} 
-                          alt="Payment proof" 
-                          className="w-full max-h-48 object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setProofDialogOpen(true)}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">Admin Notes (optional)</label>
