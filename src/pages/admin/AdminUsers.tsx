@@ -83,6 +83,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { AdminResetPasswordDialog } from '@/components/admin/AdminResetPasswordDialog';
 import { UserPaymentSettingsPanel } from '@/components/admin/UserPaymentSettingsPanel';
+import { BulkPaymentSettingsDialog } from '@/components/admin/BulkPaymentSettingsDialog';
 
 const statusConfig: Record<UserStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { 
@@ -121,6 +122,7 @@ const AdminUsers: React.FC = () => {
   const [isIPLogDialogOpen, setIsIPLogDialogOpen] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
   const [isPaymentSettingsOpen, setIsPaymentSettingsOpen] = useState(false);
+  const [isBulkPaymentSettingsOpen, setIsBulkPaymentSettingsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<DropshipperUser | null>(null);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetDataCounts, setResetDataCounts] = useState<{
@@ -518,7 +520,7 @@ const AdminUsers: React.FC = () => {
               <Users className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">{selectedUserIds.size} selected</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 size="sm"
                 variant="outline"
@@ -538,6 +540,15 @@ const AdminUsers: React.FC = () => {
               >
                 {isBulkActionLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />}
                 Disable All
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsBulkPaymentSettingsOpen(true)}
+                disabled={isBulkActionLoading}
+              >
+                <CreditCard className="w-4 h-4 mr-1" />
+                Payment Settings
               </Button>
               <Button
                 size="sm"
@@ -1351,6 +1362,14 @@ const AdminUsers: React.FC = () => {
           open={isPaymentSettingsOpen}
           onOpenChange={setIsPaymentSettingsOpen}
           user={selectedUser}
+        />
+
+        {/* Bulk Payment Settings Dialog */}
+        <BulkPaymentSettingsDialog
+          open={isBulkPaymentSettingsOpen}
+          onOpenChange={setIsBulkPaymentSettingsOpen}
+          selectedUserIds={Array.from(selectedUserIds)}
+          onSuccess={clearSelection}
         />
       </div>
     </DashboardLayout>
