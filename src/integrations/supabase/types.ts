@@ -260,7 +260,6 @@ export type Database = {
           currency_symbol: string
           id: string
           order_id: string | null
-          payment_proof_url: string | null
           payment_purpose: string | null
           status: string
           transaction_hash: string | null
@@ -278,7 +277,6 @@ export type Database = {
           currency_symbol?: string
           id?: string
           order_id?: string | null
-          payment_proof_url?: string | null
           payment_purpose?: string | null
           status?: string
           transaction_hash?: string | null
@@ -296,7 +294,6 @@ export type Database = {
           currency_symbol?: string
           id?: string
           order_id?: string | null
-          payment_proof_url?: string | null
           payment_purpose?: string | null
           status?: string
           transaction_hash?: string | null
@@ -1795,25 +1792,25 @@ export type Database = {
       }
       video_tutorial_completions: {
         Row: {
+          completed_at: string
           created_at: string
           id: string
-          tutorial_id: string
           user_id: string
-          watched_at: string
+          video_id: string
         }
         Insert: {
+          completed_at?: string
           created_at?: string
           id?: string
-          tutorial_id: string
           user_id: string
-          watched_at?: string
+          video_id: string
         }
         Update: {
+          completed_at?: string
           created_at?: string
           id?: string
-          tutorial_id?: string
           user_id?: string
-          watched_at?: string
+          video_id?: string
         }
         Relationships: []
       }
@@ -1940,110 +1937,56 @@ export type Database = {
           orders_count: number | null
           rank_position: number | null
           updated_at: string | null
-          user_id: string | null
         }
         Insert: {
           badge_title?: string | null
           created_at?: string | null
           display_name?: string | null
-          earnings_amount?: never
+          earnings_amount?: number | null
           id?: string | null
           is_active?: boolean | null
           orders_count?: number | null
           rank_position?: number | null
           updated_at?: string | null
-          user_id?: never
         }
         Update: {
           badge_title?: string | null
           created_at?: string | null
           display_name?: string | null
-          earnings_amount?: never
+          earnings_amount?: number | null
           id?: string | null
           is_active?: boolean | null
           orders_count?: number | null
           rank_position?: number | null
           updated_at?: string | null
-          user_id?: never
         }
         Relationships: []
       }
     }
     Functions: {
-      can_request_payout: { Args: { _user_id: string }; Returns: boolean }
       check_login_rate_limit: {
         Args: { _email: string; _ip_address?: string }
         Returns: Json
       }
-      cleanup_expired_mfa_data: { Args: never; Returns: undefined }
-      cleanup_old_login_attempts: { Args: never; Returns: undefined }
-      create_audit_log:
-        | {
-            Args: {
-              _action_type: string
-              _admin_id: string
-              _entity_id: string
-              _entity_type: string
-              _metadata?: Json
-              _new_value?: Json
-              _old_value?: Json
-              _reason?: string
-              _user_id?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _action_type: string
-              _admin_id: string
-              _entity_id: string
-              _entity_type: string
-              _metadata?: Json
-              _new_value?: Json
-              _old_value?: Json
-              _reason?: string
-              _user_id: string
-            }
-            Returns: string
-          }
-      get_assigned_agent_info: {
+      create_audit_log: {
+        Args: {
+          _action_type: string
+          _admin_id: string
+          _entity_id: string
+          _entity_type: string
+          _metadata?: Json
+          _new_value?: Json
+          _old_value?: Json
+          _reason?: string
+          _user_id?: string
+        }
+        Returns: string
+      }
+      get_assigned_agent_name: {
         Args: { p_user_id: string }
         Returns: {
           agent_name: string
           is_online: boolean
-        }[]
-      }
-      get_assigned_agent_name: { Args: { p_user_id: string }; Returns: string }
-      get_available_agent: {
-        Args: {
-          _exclude_agent_id?: string
-          _strategy?: Database["public"]["Enums"]["chat_assignment_strategy"]
-        }
-        Returns: string
-      }
-      get_dropshipper_orders_masked: {
-        Args: never
-        Returns: {
-          base_price: number
-          completed_at: string
-          created_at: string
-          customer_address_masked: string
-          customer_email_masked: string
-          customer_name_masked: string
-          customer_phone_masked: string
-          dropshipper_user_id: string
-          id: string
-          order_number: string
-          paid_at: string
-          payment_link: string
-          payment_link_clicked_at: string
-          payment_type: string
-          postpaid_paid_at: string
-          quantity: number
-          selling_price: number
-          status: Database["public"]["Enums"]["order_status"]
-          storefront_product_id: string
-          updated_at: string
         }[]
       }
       get_kyc_status: {
