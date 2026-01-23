@@ -14,7 +14,8 @@ type IPActionType =
   | "profile_update"
   | "postpaid_repayment"
   | "crypto_payment"
-  | "payment_details_update";
+  | "payment_details_update"
+  | "kyc_submission";
 
 function getClientIp(req: Request): string | null {
   const forwardedFor = req.headers.get("x-forwarded-for");
@@ -69,6 +70,7 @@ serve(async (req) => {
       "postpaid_repayment",
       "crypto_payment",
       "payment_details_update",
+      "kyc_submission",
     ]);
 
     if (!actionType || !allowed.has(actionType)) {

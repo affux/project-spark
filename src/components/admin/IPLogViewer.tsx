@@ -26,6 +26,7 @@ const actionTypeLabels: Record<string, { label: string; variant: 'default' | 'se
   postpaid_repayment: { label: 'Postpaid Repayment', variant: 'default' },
   crypto_payment: { label: 'Crypto Payment', variant: 'outline' },
   payment_details_update: { label: 'Payment Details', variant: 'secondary' },
+  kyc_submission: { label: 'KYC Submission', variant: 'default' },
 };
 
 export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn = true }) => {
