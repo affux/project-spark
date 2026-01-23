@@ -19,7 +19,9 @@ import {
   Users,
   Mail,
   Send,
-  Wallet
+  Wallet,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,6 +43,7 @@ import {
 } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { useAdminPostpaid, PostpaidTransaction } from '@/hooks/usePostpaid';
 import { usePlatformSettings, CURRENCY_SYMBOLS } from '@/hooks/usePlatformSettings';
@@ -85,6 +88,9 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
   const [adjustType, setAdjustType] = useState<'add' | 'subtract'>('subtract');
   const [adjustReason, setAdjustReason] = useState('');
   const [isSendingReminders, setIsSendingReminders] = useState(false);
+  
+  // Bulk selection state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
 
   const {
     users,
@@ -102,6 +108,8 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
     isTogglingAllowPayoutWithDues,
     toggleWalletPayment,
     isTogglingWalletPayment,
+    bulkToggleWalletPayment,
+    isBulkTogglingWalletPayment,
   } = useAdminPostpaid();
 
   const { settingsMap, updateSetting, isUpdating } = usePlatformSettings();
@@ -120,6 +128,35 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
   const usersWithPostpaid = users.filter(u => u.postpaid_enabled);
   const usersWithDues = users.filter(u => u.postpaid_used > 0);
   const totalOutstandingDues = users.reduce((sum, u) => sum + u.postpaid_used, 0);
+
+  // Bulk selection helpers
+  const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.has(u.user_id));
+  const someFilteredSelected = filteredUsers.some(u => selectedUserIds.has(u.user_id));
+  const selectedCount = selectedUserIds.size;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds(new Set(filteredUsers.map(u => u.user_id)));
+    } else {
+      setSelectedUserIds(new Set());
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSet = new Set(selectedUserIds);
+    if (checked) {
+      newSet.add(userId);
+    } else {
+      newSet.delete(userId);
+    }
+    setSelectedUserIds(newSet);
+  };
+
+  const handleBulkWalletToggle = (enabled: boolean) => {
+    if (selectedUserIds.size === 0) return;
+    bulkToggleWalletPayment({ userIds: Array.from(selectedUserIds), enabled });
+    setSelectedUserIds(new Set());
+  };
 
   const handleSendDueReminders = async () => {
     setIsSendingReminders(true);
@@ -304,15 +341,62 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
 
           <Separator />
 
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          {/* Search and Bulk Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {/* Bulk Actions */}
+            {selectedCount > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+                <Badge variant="secondary" className="font-medium">
+                  {selectedCount} selected
+                </Badge>
+                <Separator orientation="vertical" className="h-6" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBulkWalletToggle(true)}
+                  disabled={isBulkTogglingWalletPayment || !isWalletPaymentEnabled}
+                  className="gap-1"
+                >
+                  {isBulkTogglingWalletPayment ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wallet className="w-3 h-3" />
+                  )}
+                  Enable Wallet
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBulkWalletToggle(false)}
+                  disabled={isBulkTogglingWalletPayment}
+                  className="gap-1"
+                >
+                  {isBulkTogglingWalletPayment ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wallet className="w-3 h-3" />
+                  )}
+                  Disable Wallet
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedUserIds(new Set())}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Users Table */}
@@ -320,6 +404,14 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={allFilteredSelected}
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all"
+                      className={someFilteredSelected && !allFilteredSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                    />
+                  </TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Enabled</TableHead>
                   <TableHead>Credit Limit</TableHead>
@@ -334,13 +426,20 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => (
-                    <TableRow key={user.user_id}>
+                    <TableRow key={user.user_id} className={selectedUserIds.has(user.user_id) ? "bg-muted/30" : ""}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUserIds.has(user.user_id)}
+                          onCheckedChange={(checked) => handleSelectUser(user.user_id, checked as boolean)}
+                          aria-label={`Select ${user.name}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div>
                           <div className="font-medium">{user.name}</div>

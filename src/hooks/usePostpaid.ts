@@ -453,6 +453,33 @@ export const useAdminPostpaid = () => {
     },
   });
 
+  // Bulk toggle wallet payment for multiple users
+  const bulkToggleWalletPaymentMutation = useMutation({
+    mutationFn: async ({ userIds, enabled }: { userIds: string[]; enabled: boolean }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ postpaid_wallet_enabled: enabled })
+        .in('user_id', userIds);
+
+      if (error) throw error;
+      return { count: userIds.length, enabled };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-postpaid-users'] });
+      toast({
+        title: result.enabled ? 'Wallet Payments Enabled' : 'Wallet Payments Disabled',
+        description: `Updated wallet payment setting for ${result.count} user(s).`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update wallet payment settings.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return {
     users: usersWithPostpaidQuery.data || [],
     isLoading: usersWithPostpaidQuery.isLoading,
@@ -470,5 +497,7 @@ export const useAdminPostpaid = () => {
     isTogglingAllowPayoutWithDues: toggleAllowPayoutWithDuesMutation.isPending,
     toggleWalletPayment: toggleWalletPaymentMutation.mutate,
     isTogglingWalletPayment: toggleWalletPaymentMutation.isPending,
+    bulkToggleWalletPayment: bulkToggleWalletPaymentMutation.mutate,
+    isBulkTogglingWalletPayment: bulkToggleWalletPaymentMutation.isPending,
   };
 };
