@@ -218,12 +218,13 @@ const UserPayments: React.FC = () => {
   const canRequestPayout = payoutEnabled && isKYCApproved && withdrawableBalance >= minPayoutAmount && !isBlockedByPostpaidDues;
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   
-  // Get available payment methods based on admin settings
+  // Get available payment methods based on admin settings and user-specific wallet setting
   const availablePaymentMethods = [
     { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer },
     { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi },
     { value: 'paypal', label: 'PayPal', enabled: payoutMethodsEnabled.paypal },
-    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto },
+    // USDT Wallet - also check user-specific walletPaymentEnabled
+    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && postpaidStatus?.walletPaymentEnabled !== false },
   ].filter(m => m.enabled);
 
   // Set default payment method when dialog opens

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Wallet, CreditCard, Building2, Smartphone, QrCode, Landmark, BadgeIndianRupee } from 'lucide-react';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
+import { usePostpaid } from '@/hooks/usePostpaid';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { USDWalletPayment } from './USDWalletPayment';
@@ -65,6 +66,7 @@ const paymentMethods: PaymentMethod[] = [
 
 export const AddFundsSection: React.FC = () => {
   const { settingsMap, settings } = usePlatformSettings();
+  const { postpaidStatus } = usePostpaid();
   const { toast } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
 
@@ -77,10 +79,13 @@ export const AddFundsSection: React.FC = () => {
   const methodsConfig = useMemo(() => {
     return paymentMethods.map(method => ({
       ...method,
-      enabled: getRawValue(method.enabledKey) === 'true',
+      // For usd_wallet, also check user-specific walletPaymentEnabled setting
+      enabled: method.id === 'usd_wallet' 
+        ? getRawValue(method.enabledKey) === 'true' && postpaidStatus?.walletPaymentEnabled !== false
+        : getRawValue(method.enabledKey) === 'true',
       message: getRawValue(method.messageKey) || `${method.name} is not available.`,
     }));
-  }, [settings]);
+  }, [settings, postpaidStatus?.walletPaymentEnabled]);
 
   const selectedConfig = useMemo(() => {
     return methodsConfig.find(m => m.id === selectedMethod);
