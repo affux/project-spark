@@ -163,6 +163,8 @@ export interface SettingsMap {
     paypal: boolean;
     secure_checkout: boolean;
   };
+  // Postpaid wallet payment toggle
+  postpaid_wallet_payment_enabled: boolean;
 }
 
 export const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -326,6 +328,8 @@ export const usePlatformSettings = () => {
         paypal: true,
         secure_checkout: true,
       },
+      // Postpaid wallet payment
+      postpaid_wallet_payment_enabled: true,
     };
 
     settingsQuery.data?.forEach((setting) => {
@@ -614,6 +618,9 @@ export const usePlatformSettings = () => {
               secure_checkout: true,
             };
           }
+          break;
+        case 'postpaid_wallet_payment_enabled':
+          map.postpaid_wallet_payment_enabled = setting.value !== 'false';
           break;
       }
     });
