@@ -32,6 +32,8 @@ const txHashSchema = z.string()
 interface USDWalletPaymentProps {
   onPaid?: (paymentInfo?: { wallet: string; amount: string; currency: string; transactionHash?: string }) => void;
   showPayButton?: boolean;
+  /** When false, hides the proof uploader (useful when a parent flow collects proof separately). */
+  showProofUpload?: boolean;
   className?: string;
   orderAmount?: number;
   orderId?: string;
@@ -40,6 +42,7 @@ interface USDWalletPaymentProps {
 export const USDWalletPayment: React.FC<USDWalletPaymentProps> = ({
   onPaid,
   showPayButton = true,
+  showProofUpload = true,
   className,
   orderAmount,
   orderId,
@@ -397,61 +400,63 @@ export const USDWalletPayment: React.FC<USDWalletPaymentProps> = ({
       </div>
 
       {/* Payment Proof Upload */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium flex items-center gap-1">
-          <ImageIcon className="w-4 h-4" />
-          Payment Proof
-          <span className="text-destructive">*</span>
-        </Label>
-        
-        {paymentProofPreview ? (
-          <div className="relative group">
-            <div className="border rounded-lg overflow-hidden bg-muted/30">
-              <img 
-                src={paymentProofPreview} 
-                alt="Payment proof" 
-                className="w-full max-h-48 object-contain"
-              />
+      {showProofUpload && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-1">
+            <ImageIcon className="w-4 h-4" />
+            Payment Proof
+            <span className="text-destructive">*</span>
+          </Label>
+          
+          {paymentProofPreview ? (
+            <div className="relative group">
+              <div className="border rounded-lg overflow-hidden bg-muted/30">
+                <img 
+                  src={paymentProofPreview} 
+                  alt="Payment proof" 
+                  className="w-full max-h-48 object-contain"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-8 w-8 opacity-80 hover:opacity-100"
+                onClick={removePaymentProof}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1">
+                {paymentProof?.name}
+              </p>
             </div>
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2 h-8 w-8 opacity-80 hover:opacity-100"
-              onClick={removePaymentProof}
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors"
             >
-              <X className="w-4 h-4" />
-            </Button>
-            <p className="text-xs text-muted-foreground mt-1">
-              {paymentProof?.name}
-            </p>
-          </div>
-        ) : (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors"
-          >
-            <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Click to upload payment screenshot
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              JPG, PNG (max 5MB)
-            </p>
-          </div>
-        )}
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleProofUpload}
-          className="hidden"
-        />
-        <p className="text-xs text-muted-foreground">
-          Upload a screenshot showing your successful payment transaction
-        </p>
-      </div>
+              <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Click to upload payment screenshot
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                JPG, PNG (max 5MB)
+              </p>
+            </div>
+          )}
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleProofUpload}
+            className="hidden"
+          />
+          <p className="text-xs text-muted-foreground">
+            Upload a screenshot showing your successful payment transaction
+          </p>
+        </div>
+      )}
 
       {showPayButton && onPaid && (
         <Button

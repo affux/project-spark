@@ -822,6 +822,7 @@ const UserOrders: React.FC = () => {
                 {selectedPaymentMethod === 'usd_wallet' && selectedOrder && (
                   <USDWalletPayment 
                     showPayButton={false}
+                    showProofUpload={false}
                     className="border-primary/30"
                     orderAmount={selectedOrder.base_price * selectedOrder.quantity}
                   />
