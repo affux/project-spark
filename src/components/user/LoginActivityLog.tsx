@@ -36,6 +36,8 @@ const actionConfig: Record<string, { label: string; icon: React.ComponentType<an
   payout_request: { label: 'Payout Request', icon: Wallet, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   profile_update: { label: 'Profile Update', icon: UserCog, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
   postpaid_repayment: { label: 'Postpaid Repayment', icon: Wallet, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
+  crypto_payment: { label: 'Crypto Payment', icon: Wallet, color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+  payment_details_update: { label: 'Payment Details Update', icon: UserCog, color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400' },
 };
 
 export const LoginActivityLog: React.FC = () => {

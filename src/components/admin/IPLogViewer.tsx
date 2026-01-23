@@ -24,6 +24,8 @@ const actionTypeLabels: Record<string, { label: string; variant: 'default' | 'se
   payout_request: { label: 'Payout Request', variant: 'outline' },
   profile_update: { label: 'Profile Update', variant: 'secondary' },
   postpaid_repayment: { label: 'Postpaid Repayment', variant: 'default' },
+  crypto_payment: { label: 'Crypto Payment', variant: 'outline' },
+  payment_details_update: { label: 'Payment Details', variant: 'secondary' },
 };
 
 export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn = true }) => {

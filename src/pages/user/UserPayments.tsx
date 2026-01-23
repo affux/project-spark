@@ -78,6 +78,7 @@ import { EarningsChart } from '@/components/user/EarningsChart';
 import { TransactionExport } from '@/components/user/TransactionExport';
 import { PostpaidCreditPanel } from '@/components/user/PostpaidCreditPanel';
 import { usePostpaid } from '@/hooks/usePostpaid';
+import { logIPAction } from '@/hooks/useIPLogger';
 import { usePayoutRealtimeUser, useWalletRealtimeUser, useProfileRealtimeUser } from '@/hooks/useRealtimeSubscription';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh';
@@ -450,6 +451,8 @@ const UserPayments: React.FC = () => {
           .update({ saved_payment_details: newSavedDetails })
           .eq('user_id', user.id);
         setSavedPaymentDetails(newSavedDetails);
+        // Log IP for payment details update
+        await logIPAction(user.id, 'payment_details_update');
       }
     }
 
@@ -475,6 +478,8 @@ const UserPayments: React.FC = () => {
           .update({ saved_payment_details: newSavedDetails })
           .eq('user_id', user.id);
         setSavedPaymentDetails(newSavedDetails);
+        // Log IP for payment details update
+        await logIPAction(user.id, 'payment_details_update');
       }
     }
 
@@ -539,6 +544,8 @@ const UserPayments: React.FC = () => {
           .update({ saved_payment_details: newSavedDetails })
           .eq('user_id', user.id);
         setSavedPaymentDetails(newSavedDetails);
+        // Log IP for payment details update
+        await logIPAction(user.id, 'payment_details_update');
       }
     }
 

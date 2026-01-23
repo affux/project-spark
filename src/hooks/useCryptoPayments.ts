@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { logIPAction } from '@/hooks/useIPLogger';
 
 export interface CryptoPayment {
   id: string;
@@ -114,7 +115,12 @@ export function useCryptoPayments() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
+      // Log IP for crypto payment submission
+      if (user?.id) {
+        await logIPAction(user.id, 'crypto_payment');
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['crypto-payments'] });
       toast({
         title: 'Payment Submitted',

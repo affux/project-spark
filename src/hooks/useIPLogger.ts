@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type IPActionType = 'login' | 'logout' | 'order_placed' | 'payout_request' | 'profile_update' | 'postpaid_repayment';
+export type IPActionType = 'login' | 'logout' | 'order_placed' | 'payout_request' | 'profile_update' | 'postpaid_repayment' | 'crypto_payment' | 'payment_details_update';
 
 export interface IPInfo {
   ip: string;
