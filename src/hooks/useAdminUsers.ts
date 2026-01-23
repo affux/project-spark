@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createAuditLog } from '@/lib/auditLog';
 
 export type UserStatus = 'pending' | 'approved' | 'disabled';
 export type UserLevel = 'bronze' | 'silver' | 'gold';
@@ -109,15 +110,17 @@ export const useAdminUsers = () => {
       if (error) throw error;
       
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: 'user_level_change',
-        _entity_type: 'profile',
-        _entity_id: userId,
-        _user_id: userId,
-        _admin_id: user?.id,
-        _new_value: { user_level: level },
-        _reason: `User level changed to ${level}`,
-      });
+      if (user?.id) {
+        await createAuditLog({
+          actionType: 'user_level_change',
+          entityType: 'profile',
+          entityId: userId,
+          userId: userId,
+          adminId: user.id,
+          newValue: { user_level: level },
+          reason: `User level changed to ${level}`,
+        });
+      }
       
       return level;
     },
@@ -186,15 +189,17 @@ export const useAdminUsers = () => {
       }
       
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: 'user_status_change',
-        _entity_type: 'profile',
-        _entity_id: userId,
-        _user_id: userId,
-        _admin_id: user?.id,
-        _new_value: { status },
-        _reason: `Status changed to ${status}`,
-      });
+      if (user?.id) {
+        await createAuditLog({
+          actionType: 'user_status_change',
+          entityType: 'profile',
+          entityId: userId,
+          userId: userId,
+          adminId: user.id,
+          newValue: { status },
+          reason: `Status changed to ${status}`,
+        });
+      }
       
       return status;
     },
@@ -276,17 +281,19 @@ export const useAdminUsers = () => {
       if (error) throw error;
       
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: 'commission_change',
-        _entity_type: 'profile',
-        _entity_id: userId,
-        _user_id: userId,
-        _admin_id: user?.id,
-        _new_value: { commission_override: commissionOverride },
-        _reason: commissionOverride !== null 
-          ? `Custom commission set to ${commissionOverride}%` 
-          : 'Commission reset to default',
-      });
+      if (user?.id) {
+        await createAuditLog({
+          actionType: 'commission_change',
+          entityType: 'profile',
+          entityId: userId,
+          userId: userId,
+          adminId: user.id,
+          newValue: { commission_override: commissionOverride },
+          reason: commissionOverride !== null 
+            ? `Custom commission set to ${commissionOverride}%` 
+            : 'Commission reset to default',
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-dropshippers'] });

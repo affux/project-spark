@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { createAuditLog } from '@/lib/auditLog';
 import type { KYCSubmission } from './useKYC';
 
 export interface KYCWithProfile extends KYCSubmission {
@@ -76,13 +77,13 @@ export const useAdminKYC = () => {
       if (error) throw error;
 
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: `kyc_${status}`,
-        _entity_type: 'kyc_submission',
-        _entity_id: kycId,
-        _user_id: data.user_id,
-        _admin_id: user.id,
-        _new_value: { status, reason },
+      await createAuditLog({
+        actionType: `kyc_${status}`,
+        entityType: 'kyc_submission',
+        entityId: kycId,
+        userId: data.user_id,
+        adminId: user.id,
+        newValue: { status, reason },
       });
 
       return data;
@@ -122,13 +123,13 @@ export const useAdminKYC = () => {
       if (error) throw error;
 
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: 'kyc_approved',
-        _entity_type: 'kyc_submission',
-        _entity_id: kycId,
-        _user_id: data.user_id,
-        _admin_id: user.id,
-        _new_value: { status: 'approved' },
+      await createAuditLog({
+        actionType: 'kyc_approved',
+        entityType: 'kyc_submission',
+        entityId: kycId,
+        userId: data.user_id,
+        adminId: user.id,
+        newValue: { status: 'approved' },
       });
 
       return data;
@@ -168,13 +169,13 @@ export const useAdminKYC = () => {
       if (error) throw error;
 
       // Log the action
-      await supabase.rpc('create_audit_log', {
-        _action_type: 'kyc_rejected',
-        _entity_type: 'kyc_submission',
-        _entity_id: kycId,
-        _user_id: data.user_id,
-        _admin_id: user.id,
-        _new_value: { status: 'rejected', reason },
+      await createAuditLog({
+        actionType: 'kyc_rejected',
+        entityType: 'kyc_submission',
+        entityId: kycId,
+        userId: data.user_id,
+        adminId: user.id,
+        newValue: { status: 'rejected', reason },
       });
 
       return data;
@@ -215,13 +216,13 @@ export const useAdminKYC = () => {
 
       // Log the action
       if (kycData) {
-        await supabase.rpc('create_audit_log', {
-          _action_type: 'kyc_deleted',
-          _entity_type: 'kyc_submission',
-          _entity_id: kycId,
-          _user_id: kycData.user_id,
-          _admin_id: user.id,
-          _new_value: { status: 'deleted' },
+        await createAuditLog({
+          actionType: 'kyc_deleted',
+          entityType: 'kyc_submission',
+          entityId: kycId,
+          userId: kycData.user_id,
+          adminId: user.id,
+          newValue: { status: 'deleted' },
         });
       }
 
