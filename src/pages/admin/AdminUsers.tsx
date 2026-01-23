@@ -82,6 +82,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { AdminResetPasswordDialog } from '@/components/admin/AdminResetPasswordDialog';
+import { UserPaymentSettingsPanel } from '@/components/admin/UserPaymentSettingsPanel';
 
 const statusConfig: Record<UserStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { 
@@ -119,6 +120,7 @@ const AdminUsers: React.FC = () => {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isIPLogDialogOpen, setIsIPLogDialogOpen] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [isPaymentSettingsOpen, setIsPaymentSettingsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<DropshipperUser | null>(null);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetDataCounts, setResetDataCounts] = useState<{
@@ -717,6 +719,13 @@ const AdminUsers: React.FC = () => {
                     }}>
                       <Key className="w-4 h-4 mr-2" />
                       Reset Password
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      setSelectedUser(user);
+                      setIsPaymentSettingsOpen(true);
+                    }}>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Payment Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {user.user_status === 'pending' && (
@@ -1336,6 +1345,13 @@ const AdminUsers: React.FC = () => {
             userEmail={selectedUser.email}
           />
         )}
+
+        {/* User Payment Settings Panel */}
+        <UserPaymentSettingsPanel
+          open={isPaymentSettingsOpen}
+          onOpenChange={setIsPaymentSettingsOpen}
+          user={selectedUser}
+        />
       </div>
     </DashboardLayout>
   );

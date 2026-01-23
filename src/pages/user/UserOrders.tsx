@@ -32,6 +32,7 @@ import { useOrderRealtimeUser } from '@/hooks/useRealtimeSubscription';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { triggerPaymentConfetti } from '@/lib/confetti';
 import { usePostpaid } from '@/hooks/usePostpaid';
+import { useMyPaymentSettings } from '@/hooks/useUserPaymentSettings';
 
 type OrderStatusFilter = 'all' | 'pending_payment' | 'paid_by_user' | 'processing' | 'completed';
 
@@ -67,6 +68,9 @@ const UserOrders: React.FC = () => {
 
   // Get postpaid status
   const { postpaidStatus } = usePostpaid();
+  
+  // Get per-user payment settings
+  const { settings: userPaymentSettings } = useMyPaymentSettings();
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -99,10 +103,19 @@ const UserOrders: React.FC = () => {
 
   // Check if wallet balance payment is enabled by admin (default to true for backward compatibility)
   const isWalletBalanceEnabled = settingsMap.payment_method_wallet_balance_enabled !== false;
+  
+  // Per-user payment method checks (default all true if not set)
+  const userMethodsEnabled = userPaymentSettings?.enabled_methods || {
+    upi: true,
+    wallet: true,
+    bank_transfer: true,
+    usd_wallet: true,
+  };
 
-  // Get enabled payment methods - include wallet balance only if enabled by admin
+  // Get enabled payment methods - check both global AND per-user settings
   const enabledPaymentMethods = [
-    ...(isWalletBalanceEnabled ? [{ 
+    // Wallet balance - enabled if global ON + per-user ON
+    ...(isWalletBalanceEnabled && userMethodsEnabled.wallet ? [{ 
       id: 'wallet_balance', 
       name: 'Wallet Balance', 
       icon: Wallet, 
@@ -123,11 +136,41 @@ const UserOrders: React.FC = () => {
       isWalletBalance: false,
       isPostpaid: true,
     }] : []),
-    { id: 'upi', name: 'UPI', icon: Smartphone, customIcon: null, enabled: settingsMap.payment_method_upi_enabled, message: settingsMap.payment_method_upi_message, isWalletBalance: false, isPostpaid: false },
-    { id: 'bank', name: 'Bank Transfer', icon: Building, customIcon: null, enabled: settingsMap.payment_method_bank_enabled, message: settingsMap.payment_method_bank_message, isWalletBalance: false, isPostpaid: false },
-    // USDT Wallet - check both global setting AND user-specific walletPaymentEnabled
-    { id: 'usd_wallet', name: 'USDT Wallet', icon: Wallet, customIcon: <USDTIcon size={20} />, enabled: settingsMap.payment_method_usd_wallet_enabled && (postpaidStatus?.walletPaymentEnabled !== false), message: settingsMap.payment_method_usd_wallet_message, walletId: settingsMap.usd_wallet_id, isWalletBalance: false, isPostpaid: false },
-  ].filter(m => m.enabled);
+    // UPI - enabled if global ON + per-user ON
+    ...(settingsMap.payment_method_upi_enabled && userMethodsEnabled.upi ? [{ 
+      id: 'upi', 
+      name: 'UPI', 
+      icon: Smartphone, 
+      customIcon: null, 
+      enabled: true, 
+      message: settingsMap.payment_method_upi_message, 
+      isWalletBalance: false, 
+      isPostpaid: false 
+    }] : []),
+    // Bank Transfer - enabled if global ON + per-user ON
+    ...(settingsMap.payment_method_bank_enabled && userMethodsEnabled.bank_transfer ? [{ 
+      id: 'bank', 
+      name: 'Bank Transfer', 
+      icon: Building, 
+      customIcon: null, 
+      enabled: true, 
+      message: settingsMap.payment_method_bank_message, 
+      isWalletBalance: false, 
+      isPostpaid: false 
+    }] : []),
+    // USDT Wallet - check global + per-user + user-specific walletPaymentEnabled
+    ...(settingsMap.payment_method_usd_wallet_enabled && userMethodsEnabled.usd_wallet && (postpaidStatus?.walletPaymentEnabled !== false) ? [{ 
+      id: 'usd_wallet', 
+      name: 'USDT Wallet', 
+      icon: Wallet, 
+      customIcon: <USDTIcon size={20} />, 
+      enabled: true, 
+      message: settingsMap.payment_method_usd_wallet_message, 
+      walletId: settingsMap.usd_wallet_id, 
+      isWalletBalance: false, 
+      isPostpaid: false 
+    }] : []),
+  ];
 
   const handlePayOrder = (order: DashboardOrder) => {
     setSelectedOrder(order);

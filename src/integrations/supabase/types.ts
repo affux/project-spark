@@ -1716,6 +1716,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_payment_settings: {
+        Row: {
+          created_at: string
+          custom_upi_id: string | null
+          custom_upi_qr_url: string | null
+          enabled_methods: Json
+          id: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_upi_id?: string | null
+          custom_upi_qr_url?: string | null
+          enabled_methods?: Json
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_upi_id?: string | null
+          custom_upi_qr_url?: string | null
+          enabled_methods?: Json
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           created_at: string
