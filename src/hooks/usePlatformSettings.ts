@@ -371,6 +371,12 @@ export const usePlatformSettings = () => {
         case 'site_name':
           map.site_name = setting.value || 'Dropshipping Platform';
           break;
+        case 'site_title':
+          map.site_title = setting.value || 'Dropshipping Platform';
+          break;
+        case 'site_favicon_url':
+          map.site_favicon_url = setting.value || '';
+          break;
         case 'site_logo_url':
           map.site_logo_url = setting.value || '';
           break;
