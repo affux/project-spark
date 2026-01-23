@@ -1407,6 +1407,7 @@ export type Database = {
           postpaid_due_cycle: number | null
           postpaid_enabled: boolean
           postpaid_used: number
+          postpaid_wallet_enabled: boolean
           profile_image_url: string | null
           saved_payment_details: Json | null
           storefront_banner: string | null
@@ -1433,6 +1434,7 @@ export type Database = {
           postpaid_due_cycle?: number | null
           postpaid_enabled?: boolean
           postpaid_used?: number
+          postpaid_wallet_enabled?: boolean
           profile_image_url?: string | null
           saved_payment_details?: Json | null
           storefront_banner?: string | null
@@ -1459,6 +1461,7 @@ export type Database = {
           postpaid_due_cycle?: number | null
           postpaid_enabled?: boolean
           postpaid_used?: number
+          postpaid_wallet_enabled?: boolean
           profile_image_url?: string | null
           saved_payment_details?: Json | null
           storefront_banner?: string | null
