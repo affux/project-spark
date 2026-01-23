@@ -49,6 +49,7 @@ export const PaymentMethodSettings: React.FC = () => {
   
   // UPI QR Code state
   const [upiQrUrl, setUpiQrUrl] = useState('');
+  const [upiId, setUpiId] = useState('');
   const [isUploadingUpiQR, setIsUploadingUpiQR] = useState(false);
   const upiQrInputRef = useRef<HTMLInputElement>(null);
   
@@ -78,8 +79,9 @@ export const PaymentMethodSettings: React.FC = () => {
     setUsdQrUrl(settingsMap.usd_wallet_qr_url || '');
     setUsdIconUrl(settingsMap.usd_wallet_icon_url || '');
     
-    // UPI QR URL - use getRawValue since it may not be in SettingsMap type
+    // UPI settings - use getRawValue since they may not be in SettingsMap type
     setUpiQrUrl(getRawValue('upi_qr_url') || '');
+    setUpiId(getRawValue('upi_id') || '');
     
     // Minimum wallet balance
     setMinWalletBalance(settingsMap.minimum_wallet_balance_for_payment || 0);
@@ -297,8 +299,9 @@ export const PaymentMethodSettings: React.FC = () => {
         updateSettingAsync({ key: 'usd_wallet_icon_url', value: usdIconUrl, oldValue: settingsMap.usd_wallet_icon_url }),
         updateSettingAsync({ key: 'payment_method_usd_wallet_enabled', value: usdWalletEnabled ? 'true' : 'false', oldValue: getRawValue('payment_method_usd_wallet_enabled') }),
         updateSettingAsync({ key: 'payment_method_usd_wallet_message', value: usdWalletMessage, oldValue: getRawValue('payment_method_usd_wallet_message') }),
-        // UPI QR URL
+        // UPI settings
         updateSettingAsync({ key: 'upi_qr_url', value: upiQrUrl, oldValue: getRawValue('upi_qr_url') }),
+        updateSettingAsync({ key: 'upi_id', value: upiId, oldValue: getRawValue('upi_id') }),
         // Minimum wallet balance for payment
         updateSettingAsync({ key: 'minimum_wallet_balance_for_payment', value: minWalletBalance.toString(), oldValue: settingsMap.minimum_wallet_balance_for_payment?.toString() || '0' })
       );
@@ -430,6 +433,21 @@ export const PaymentMethodSettings: React.FC = () => {
                       Upload a QR code image for users to scan when paying via UPI.
                     </p>
                   </div>
+                </div>
+                
+                {/* UPI ID Field */}
+                <div className="space-y-2 pt-3">
+                  <Label htmlFor="upi-id">UPI ID</Label>
+                  <Input
+                    id="upi-id"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="example@upi"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter your UPI ID so users can copy and pay directly.
+                  </p>
                 </div>
               </div>
             )}

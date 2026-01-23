@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, CreditCard, Building2, Smartphone, QrCode, Landmark, BadgeIndianRupee } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Wallet, CreditCard, QrCode, Landmark, Copy, Check } from 'lucide-react';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { usePostpaid } from '@/hooks/usePostpaid';
 import { useToast } from '@/hooks/use-toast';
@@ -65,10 +66,11 @@ const paymentMethods: PaymentMethod[] = [
 ];
 
 export const AddFundsSection: React.FC = () => {
-  const { settingsMap, settings } = usePlatformSettings();
+  const { settings } = usePlatformSettings();
   const { postpaidStatus } = usePostpaid();
   const { toast } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
+  const [copiedUpiId, setCopiedUpiId] = useState(false);
 
   // Helper to get raw setting value
   const getRawValue = (key: string): string => {
@@ -77,6 +79,26 @@ export const AddFundsSection: React.FC = () => {
   };
 
   const upiQrUrl = getRawValue('upi_qr_url');
+  const upiId = getRawValue('upi_id');
+
+  const handleCopyUpiId = async () => {
+    if (!upiId) return;
+    try {
+      await navigator.clipboard.writeText(upiId);
+      setCopiedUpiId(true);
+      toast({
+        title: 'Copied!',
+        description: 'UPI ID copied to clipboard.',
+      });
+      setTimeout(() => setCopiedUpiId(false), 2000);
+    } catch {
+      toast({
+        title: 'Failed to copy',
+        description: 'Please copy the UPI ID manually.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const methodsConfig = useMemo(() => {
     return paymentMethods.map(method => ({
@@ -208,19 +230,46 @@ export const AddFundsSection: React.FC = () => {
                   {selectedConfig.message}
                 </p>
                 
-                {/* UPI QR Code Display */}
-                {selectedMethod === 'upi' && upiQrUrl && selectedConfig.enabled && (
-                  <div className="mt-4 flex flex-col items-center">
-                    <div className="p-3 bg-white rounded-xl shadow-md border">
-                      <img 
-                        src={upiQrUrl} 
-                        alt="UPI QR Code" 
-                        className="w-40 h-40 object-contain"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Scan this QR code with any UPI app to pay
-                    </p>
+                {/* UPI QR Code and ID Display */}
+                {selectedMethod === 'upi' && selectedConfig.enabled && (
+                  <div className="mt-4 space-y-4">
+                    {/* QR Code */}
+                    {upiQrUrl && (
+                      <div className="flex flex-col items-center">
+                        <div className="p-3 bg-white rounded-xl shadow-md border">
+                          <img 
+                            src={upiQrUrl} 
+                            alt="UPI QR Code" 
+                            className="w-40 h-40 object-contain"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 text-center">
+                          Scan this QR code with any UPI app to pay
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* UPI ID with Copy */}
+                    {upiId && (
+                      <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg border">
+                        <span className="text-sm font-medium text-muted-foreground">UPI ID:</span>
+                        <code className="font-mono text-sm bg-background px-2 py-1 rounded border">
+                          {upiId}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyUpiId}
+                          className="h-8 px-2"
+                        >
+                          {copiedUpiId ? (
+                            <Check className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

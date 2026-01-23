@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.verify-crypto-payment]
 verify_jwt = false
+
+[functions.admin-wallet-credit]
+verify_jwt = false
