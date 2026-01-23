@@ -211,7 +211,8 @@ const UserPayments: React.FC = () => {
   const payoutMethodsEnabled = publicSettings.payout_methods_enabled;
   
   // Check if user has postpaid dues and is blocked from payouts
-  const postpaidDues = Number(postpaidStatus?.outstandingDues ?? 0);
+  // Use Math.round to handle floating point precision issues (e.g., 0.000999 should be treated as 0)
+  const postpaidDues = Math.round(Number(postpaidStatus?.outstandingDues ?? 0) * 100) / 100;
   const allowPayoutWithDues = Boolean(profile?.allow_payout_with_dues);
   const isBlockedByPostpaidDues = postpaidDues > 0 && !allowPayoutWithDues;
   
