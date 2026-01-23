@@ -734,7 +734,7 @@ const Index: React.FC = () => {
             </p>
           </AnimatedSection>
 
-          <AnimatedSection delay={200} className="max-w-3xl mx-auto">
+          <AnimatedSection delay={200} className="w-3/4 mx-auto">
             <Accordion type="single" collapsible className="space-y-4">
               {displayFaqItems.map((item) => (
                 <AccordionItem 
