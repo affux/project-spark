@@ -124,7 +124,8 @@ const UserOrders: React.FC = () => {
     }] : []),
     { id: 'upi', name: 'UPI', icon: Smartphone, customIcon: null, enabled: settingsMap.payment_method_upi_enabled, message: settingsMap.payment_method_upi_message, isWalletBalance: false, isPostpaid: false },
     { id: 'bank', name: 'Bank Transfer', icon: Building, customIcon: null, enabled: settingsMap.payment_method_bank_enabled, message: settingsMap.payment_method_bank_message, isWalletBalance: false, isPostpaid: false },
-    { id: 'usd_wallet', name: 'USDT Wallet', icon: Wallet, customIcon: <USDTIcon size={20} />, enabled: settingsMap.payment_method_usd_wallet_enabled, message: settingsMap.payment_method_usd_wallet_message, walletId: settingsMap.usd_wallet_id, isWalletBalance: false, isPostpaid: false },
+    // USDT Wallet - check both global setting AND user-specific walletPaymentEnabled
+    { id: 'usd_wallet', name: 'USDT Wallet', icon: Wallet, customIcon: <USDTIcon size={20} />, enabled: settingsMap.payment_method_usd_wallet_enabled && (postpaidStatus?.walletPaymentEnabled !== false), message: settingsMap.payment_method_usd_wallet_message, walletId: settingsMap.usd_wallet_id, isWalletBalance: false, isPostpaid: false },
   ].filter(m => m.enabled);
 
   const handlePayOrder = (order: DashboardOrder) => {
