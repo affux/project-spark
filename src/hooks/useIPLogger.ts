@@ -2,77 +2,47 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type IPActionType = 'login' | 'logout' | 'order_placed' | 'payout_request' | 'profile_update';
 
-interface IPInfo {
+export interface IPInfo {
   ip: string;
-  country?: string;
-  city?: string;
-  region?: string;
+  country?: string | null;
+  city?: string | null;
+  region?: string | null;
 }
 
 let cachedIPInfo: IPInfo | null = null;
 
-// Use multiple fallback services for IP detection
-const ipServices = [
-  {
-    url: 'https://ipapi.co/json/',
-    parse: (data: any): IPInfo => ({
-      ip: data.ip,
-      country: data.country_name,
-      city: data.city,
-      region: data.region,
-    }),
-  },
-  {
-    url: 'https://ip-api.com/json/?fields=query,country,city,regionName',
-    parse: (data: any): IPInfo => ({
-      ip: data.query,
-      country: data.country,
-      city: data.city,
-      region: data.regionName,
-    }),
-  },
-  {
-    url: 'https://api.ipify.org?format=json',
-    parse: (data: any): IPInfo => ({
-      ip: data.ip,
-    }),
-  },
-];
-
+// Fetch client IP from backend (reliable, no 3rd-party IP services)
 export const getClientIPInfo = async (): Promise<IPInfo | null> => {
   if (cachedIPInfo) return cachedIPInfo;
-  
-  for (const service of ipServices) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch(service.url, {
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const data = await response.json();
-        cachedIPInfo = service.parse(data);
-        console.log('IP info captured:', cachedIPInfo);
-        return cachedIPInfo;
-      }
-    } catch (error) {
-      console.warn(`Failed to fetch IP from ${service.url}:`, error);
-      // Continue to next service
+
+  try {
+    const { data, error } = await supabase.functions.invoke('get-client-ip');
+    if (error) {
+      console.warn('Failed to get client IP:', error.message);
+      return null;
     }
+
+    const ip = (data as any)?.ip as string | null | undefined;
+    if (!ip) return null;
+
+    cachedIPInfo = {
+      ip,
+      country: (data as any)?.country ?? null,
+      region: (data as any)?.region ?? null,
+      city: (data as any)?.city ?? null,
+    };
+
+    return cachedIPInfo;
+  } catch (e) {
+    console.warn('Failed to get client IP:', e);
+    return null;
   }
-  
-  console.error('All IP services failed');
-  return null;
 };
 
 // Legacy function for backwards compatibility
 export const getClientIP = async (): Promise<string | null> => {
   const info = await getClientIPInfo();
-  return info?.ip || null;
+  return info?.ip ?? null;
 };
 
 export const logIPAction = async (
@@ -86,41 +56,17 @@ export const logIPAction = async (
       return false;
     }
 
-    const ipInfo = await getClientIPInfo();
-    if (!ipInfo?.ip) {
-      console.error('Could not get IP address for logging');
-      return false;
-    }
-
-    console.log('Logging IP action:', { userId, actionType, ipInfo });
-
-    // Use the secure SECURITY DEFINER function instead of direct insert
-    const { data, error } = await supabase.rpc('log_ip_action', {
-      _user_id: userId,
-      _ip_address: ipInfo.ip,
-      _action_type: actionType,
-      _country: ipInfo.country || null,
-      _city: ipInfo.city || null,
-      _region: ipInfo.region || null,
+    // Capture IP server-side from request headers (more reliable than client-side IP services)
+    const { data, error } = await supabase.functions.invoke('capture-ip-action', {
+      body: { action_type: actionType },
     });
 
     if (error) {
-      console.error('Failed to log IP action:', error.message, error.details, error.hint);
+      console.error('Failed to log IP action:', error.message);
       return false;
     }
 
-    console.log('IP action logged successfully, id:', data);
-
-    // Also update the latest IP on the profile (best effort)
-    supabase
-      .from('profiles')
-      .update({ last_ip_address: ipInfo.ip })
-      .eq('user_id', userId)
-      .then(({ error: profileError }) => {
-        if (profileError) {
-          console.warn('Failed to update profile IP:', profileError.message);
-        }
-      });
+    console.log('IP action logged successfully:', data);
 
     return true;
   } catch (error) {
