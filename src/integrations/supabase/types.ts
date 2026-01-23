@@ -260,6 +260,7 @@ export type Database = {
           currency_symbol: string
           id: string
           order_id: string | null
+          payment_proof_url: string | null
           payment_purpose: string | null
           status: string
           transaction_hash: string | null
@@ -277,6 +278,7 @@ export type Database = {
           currency_symbol?: string
           id?: string
           order_id?: string | null
+          payment_proof_url?: string | null
           payment_purpose?: string | null
           status?: string
           transaction_hash?: string | null
@@ -294,6 +296,7 @@ export type Database = {
           currency_symbol?: string
           id?: string
           order_id?: string | null
+          payment_proof_url?: string | null
           payment_purpose?: string | null
           status?: string
           transaction_hash?: string | null
