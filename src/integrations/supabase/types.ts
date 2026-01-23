@@ -2076,6 +2076,7 @@ export type Database = {
         Args: { _amount: number; _order_id: string; _user_id: string }
         Returns: Json
       }
+      process_postpaid_repayment: { Args: { _amount: number }; Returns: Json }
       record_login_attempt: {
         Args: {
           _email: string
