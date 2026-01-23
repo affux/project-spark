@@ -1051,6 +1051,35 @@ const AdminUsers: React.FC = () => {
                     Select which data to reset for <strong className="text-foreground">{selectedUser?.name}</strong>.
                   </p>
                   
+                  {/* Quick Reset Everything Button */}
+                  <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => {
+                        setResetOptions({
+                          orders: true,
+                          walletTransactions: true,
+                          storefrontProducts: true,
+                          proofOfWork: true,
+                          payoutRequests: true,
+                          cryptoPayments: true,
+                          kycSubmissions: true,
+                          chatMessages: true,
+                          notifications: true,
+                          resetProfile: true,
+                        });
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Reset Everything
+                    </Button>
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
+                      This will select all data categories for deletion
+                    </p>
+                  </div>
+
                   {/* Selectable data items */}
                   <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">
                     <div className="flex items-center justify-between mb-3">
