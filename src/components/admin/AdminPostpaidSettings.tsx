@@ -18,7 +18,8 @@ import {
   Minus,
   Users,
   Mail,
-  Send
+  Send,
+  Wallet
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -100,8 +101,13 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
     isTogglingAllowPayoutWithDues,
   } = useAdminPostpaid();
 
-  const { settingsMap } = usePlatformSettings();
+  const { settingsMap, updateSetting, isUpdating } = usePlatformSettings();
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
+  const isWalletPaymentEnabled = settingsMap.postpaid_wallet_payment_enabled;
+
+  const handleToggleWalletPayment = (enabled: boolean) => {
+    updateSetting({ key: 'postpaid_wallet_payment_enabled', value: String(enabled) });
+  };
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -260,7 +266,7 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
 
         <CardContent className="space-y-4">
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-muted/50 rounded-lg p-4 border">
               <div className="text-sm text-muted-foreground mb-1">Total Outstanding</div>
               <div className="text-2xl font-bold text-amber-600">
@@ -274,6 +280,22 @@ export const AdminPostpaidSettings: React.FC<AdminPostpaidSettingsProps> = ({ cl
             <div className="bg-muted/50 rounded-lg p-4 border">
               <div className="text-sm text-muted-foreground mb-1">Users with Dues</div>
               <div className="text-2xl font-bold text-amber-600">{usersWithDues.length}</div>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-4 border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Wallet className="w-4 h-4" />
+                  Wallet Payment
+                </div>
+                <Switch
+                  checked={isWalletPaymentEnabled}
+                  onCheckedChange={handleToggleWalletPayment}
+                  disabled={isUpdating}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {isWalletPaymentEnabled ? 'Users can pay dues with wallet' : 'Wallet payment disabled'}
+              </div>
             </div>
           </div>
 

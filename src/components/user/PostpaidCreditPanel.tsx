@@ -84,6 +84,9 @@ export const PostpaidCreditPanel: React.FC = () => {
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   const walletBalance = Number(profile?.wallet_balance ?? 0);
 
+  // Check if wallet payment is enabled for postpaid
+  const isWalletPaymentEnabled = String(settingsMap.postpaid_wallet_payment_enabled) !== 'false';
+
   // Get enabled crypto wallets
   const enabledWallets = settingsMap.crypto_wallets?.filter(w => w.enabled) || [];
   const hasLegacyWallet = !enabledWallets.length && settingsMap.usd_wallet_id && String(settingsMap.usd_wallet_enabled) === 'true';
@@ -290,7 +293,8 @@ export const PostpaidCreditPanel: React.FC = () => {
   };
 
   const handleOpenPayDialog = () => {
-    setPaymentTab('wallet');
+    // Set default tab based on what's available
+    setPaymentTab(isWalletPaymentEnabled ? 'wallet' : 'usdt');
     setPayAmount('');
     setUsdtAmount('');
     setTransactionHash('');
@@ -481,18 +485,26 @@ export const PostpaidCreditPanel: React.FC = () => {
           </div>
 
           <Tabs value={paymentTab} onValueChange={(v) => setPaymentTab(v as 'wallet' | 'usdt')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="wallet" className="flex items-center gap-2">
-                <Wallet className="w-4 h-4" />
-                Wallet Balance
-              </TabsTrigger>
-              <TabsTrigger value="usdt" disabled={!hasUsdtOption} className="flex items-center gap-2">
-                <USDTIcon size={16} />
-                USDT
-              </TabsTrigger>
+            <TabsList className={cn(
+              "grid w-full",
+              isWalletPaymentEnabled && hasUsdtOption ? "grid-cols-2" : "grid-cols-1"
+            )}>
+              {isWalletPaymentEnabled && (
+                <TabsTrigger value="wallet" className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4" />
+                  Wallet Balance
+                </TabsTrigger>
+              )}
+              {hasUsdtOption && (
+                <TabsTrigger value="usdt" className="flex items-center gap-2">
+                  <USDTIcon size={16} />
+                  USDT
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Wallet Balance Tab */}
+            {isWalletPaymentEnabled && (
             <TabsContent value="wallet" className="space-y-4 mt-4">
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
@@ -555,6 +567,7 @@ export const PostpaidCreditPanel: React.FC = () => {
                 Pay {currencySymbol}{parseFloat(payAmount || '0').toFixed(2)}
               </Button>
             </TabsContent>
+            )}
 
             {/* USDT Tab */}
             <TabsContent value="usdt" className="space-y-4 mt-4">
