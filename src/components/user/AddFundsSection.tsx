@@ -76,6 +76,8 @@ export const AddFundsSection: React.FC = () => {
     return setting?.value || '';
   };
 
+  const upiQrUrl = getRawValue('upi_qr_url');
+
   const methodsConfig = useMemo(() => {
     return paymentMethods.map(method => ({
       ...method,
@@ -198,13 +200,29 @@ export const AddFundsSection: React.FC = () => {
                   {selectedConfig.name}
                 </h4>
                 <p className={cn(
-                  "text-sm mt-1",
+                  "text-sm mt-1 whitespace-pre-line",
                   selectedConfig.enabled
                     ? "text-emerald-700 dark:text-emerald-300"
                     : "text-amber-700 dark:text-amber-300"
                 )}>
                   {selectedConfig.message}
                 </p>
+                
+                {/* UPI QR Code Display */}
+                {selectedMethod === 'upi' && upiQrUrl && selectedConfig.enabled && (
+                  <div className="mt-4 flex flex-col items-center">
+                    <div className="p-3 bg-white rounded-xl shadow-md border">
+                      <img 
+                        src={upiQrUrl} 
+                        alt="UPI QR Code" 
+                        className="w-40 h-40 object-contain"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Scan this QR code with any UPI app to pay
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

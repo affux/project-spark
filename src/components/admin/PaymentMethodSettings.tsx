@@ -47,6 +47,11 @@ export const PaymentMethodSettings: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
   
+  // UPI QR Code state
+  const [upiQrUrl, setUpiQrUrl] = useState('');
+  const [isUploadingUpiQR, setIsUploadingUpiQR] = useState(false);
+  const upiQrInputRef = useRef<HTMLInputElement>(null);
+  
   // Minimum wallet balance for payment
   const [minWalletBalance, setMinWalletBalance] = useState<number>(0);
 
@@ -72,6 +77,9 @@ export const PaymentMethodSettings: React.FC = () => {
     setUsdWalletMessage(getRawValue('payment_method_usd_wallet_message') || '');
     setUsdQrUrl(settingsMap.usd_wallet_qr_url || '');
     setUsdIconUrl(settingsMap.usd_wallet_icon_url || '');
+    
+    // UPI QR URL - use getRawValue since it may not be in SettingsMap type
+    setUpiQrUrl(getRawValue('upi_qr_url') || '');
     
     // Minimum wallet balance
     setMinWalletBalance(settingsMap.minimum_wallet_balance_for_payment || 0);
@@ -145,6 +153,66 @@ export const PaymentMethodSettings: React.FC = () => {
       setIsUploadingQR(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleUpiQRUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file (PNG, JPG, SVG).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload an image smaller than 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingUpiQR(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `upi-qr-${Date.now()}.${fileExt}`;
+      const filePath = `qr-codes/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(QR_BUCKET)
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(QR_BUCKET)
+        .getPublicUrl(filePath);
+
+      setUpiQrUrl(publicUrl);
+      toast({
+        title: 'UPI QR Code Uploaded',
+        description: 'The QR code image has been uploaded.',
+      });
+    } catch (error) {
+      console.error('UPI QR upload error:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Failed to upload QR code image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingUpiQR(false);
+      if (upiQrInputRef.current) upiQrInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveUpiQR = () => {
+    setUpiQrUrl('');
   };
 
   const handleRemoveQR = () => {
@@ -229,6 +297,8 @@ export const PaymentMethodSettings: React.FC = () => {
         updateSettingAsync({ key: 'usd_wallet_icon_url', value: usdIconUrl, oldValue: settingsMap.usd_wallet_icon_url }),
         updateSettingAsync({ key: 'payment_method_usd_wallet_enabled', value: usdWalletEnabled ? 'true' : 'false', oldValue: getRawValue('payment_method_usd_wallet_enabled') }),
         updateSettingAsync({ key: 'payment_method_usd_wallet_message', value: usdWalletMessage, oldValue: getRawValue('payment_method_usd_wallet_message') }),
+        // UPI QR URL
+        updateSettingAsync({ key: 'upi_qr_url', value: upiQrUrl, oldValue: getRawValue('upi_qr_url') }),
         // Minimum wallet balance for payment
         updateSettingAsync({ key: 'minimum_wallet_balance_for_payment', value: minWalletBalance.toString(), oldValue: settingsMap.minimum_wallet_balance_for_payment?.toString() || '0' })
       );
@@ -269,11 +339,11 @@ export const PaymentMethodSettings: React.FC = () => {
       <CardContent className="space-y-6">
         {/* Standard Payment Methods */}
         {paymentMethods.map((method) => (
-          <div key={method.id} className={`border rounded-lg p-4 space-y-4 ${method.id === 'wallet_balance' ? 'border-blue-500/30 bg-blue-500/5' : ''}`}>
+          <div key={method.id} className={`border rounded-lg p-4 space-y-4 ${method.id === 'wallet_balance' ? 'border-blue-500/30 bg-blue-500/5' : method.id === 'upi' ? 'border-orange-500/30 bg-orange-500/5' : ''}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.id === 'wallet_balance' ? 'bg-blue-500/20' : 'bg-muted'}`}>
-                  <method.icon className={`w-5 h-5 ${method.id === 'wallet_balance' ? 'text-blue-600' : ''}`} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.id === 'wallet_balance' ? 'bg-blue-500/20' : method.id === 'upi' ? 'bg-orange-500/20' : 'bg-muted'}`}>
+                  <method.icon className={`w-5 h-5 ${method.id === 'wallet_balance' ? 'text-blue-600' : method.id === 'upi' ? 'text-orange-600' : ''}`} />
                 </div>
                 <div>
                   <h4 className="font-medium">{method.name}</h4>
@@ -298,6 +368,71 @@ export const PaymentMethodSettings: React.FC = () => {
                 rows={2}
               />
             </div>
+            
+            {/* UPI QR Code Upload - only show for UPI method */}
+            {method.id === 'upi' && (
+              <div className="space-y-3 pt-2 border-t">
+                <Label>UPI QR Code Image</Label>
+                <div className="flex items-start gap-4">
+                  {/* QR Preview */}
+                  <div className="w-28 h-28 border-2 border-dashed border-orange-500/30 rounded-lg flex items-center justify-center bg-muted/30 overflow-hidden shrink-0">
+                    {upiQrUrl ? (
+                      <img
+                        src={upiQrUrl}
+                        alt="UPI QR Code"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-50" />
+                        <span className="text-xs">No QR</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Controls */}
+                  <div className="flex-1 space-y-2">
+                    <input
+                      ref={upiQrInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUpiQRUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => upiQrInputRef.current?.click()}
+                      disabled={isUploadingUpiQR}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isUploadingUpiQR ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
+                      {isUploadingUpiQR ? 'Uploading...' : 'Upload UPI QR Code'}
+                    </Button>
+                    {upiQrUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveUpiQR}
+                        className="w-full text-destructive hover:text-destructive"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove QR
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Upload a QR code image for users to scan when paying via UPI.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Minimum Wallet Balance - only show for wallet_balance method */}
             {method.id === 'wallet_balance' && (
