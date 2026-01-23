@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { PostpaidSidePanel } from '@/components/user/PostpaidSidePanel';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
@@ -227,7 +228,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           )}
           <span className="font-semibold text-sidebar-foreground">{siteName}</span>
         </div>
-        <ThemeSelector className="text-sidebar-foreground hover:bg-sidebar-accent" />
+        <div className="flex items-center gap-1">
+          <LanguageSelector className="text-sidebar-foreground hover:bg-sidebar-accent" />
+          <ThemeSelector className="text-sidebar-foreground hover:bg-sidebar-accent" />
+        </div>
       </header>
 
       {/* Sidebar */}
