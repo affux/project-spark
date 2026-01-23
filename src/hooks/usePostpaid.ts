@@ -113,118 +113,30 @@ export const usePostpaid = () => {
     enabled: !!user?.id && !!session,
   });
 
-  // Repay postpaid dues (from wallet balance) - clears specific orders
+  // Repay postpaid dues (from wallet balance) - uses RPC for secure updates
   const repayPostpaidMutation = useMutation({
     mutationFn: async ({ amount }: { amount: number }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Get current profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('wallet_balance, postpaid_used')
-        .eq('user_id', user.id)
-        .single();
+      // Call the SECURITY DEFINER RPC function that handles the repayment
+      const { data, error } = await (supabase.rpc as any)('process_postpaid_repayment', {
+        _amount: amount
+      });
 
-      if (profileError) throw profileError;
-
-      const walletBalance = Number(profile.wallet_balance);
-      const postpaidUsed = Number(profile.postpaid_used);
-
-      if (amount > walletBalance) {
-        throw new Error('Insufficient wallet balance');
+      if (error) {
+        console.error('Postpaid repayment error:', error);
+        throw new Error(error.message || 'Failed to process postpaid repayment');
       }
 
-      if (amount > postpaidUsed) {
-        throw new Error('Amount exceeds outstanding postpaid dues');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to process postpaid repayment');
       }
 
-      // Get postpaid_pending orders sorted by oldest first
-      const { data: pendingOrders, error: ordersError } = await (supabase
-        .from('orders')
-        .select('id, order_number, base_price, quantity') as any)
-        .eq('dropshipper_user_id', user.id)
-        .eq('status', 'postpaid_pending')
-        .order('created_at', { ascending: true });
-
-      if (ordersError) throw ordersError;
-
-      // Calculate which orders can be cleared with this payment
-      let remainingPayment = amount;
-      const ordersToClear: { id: string; order_number: string; amount: number }[] = [];
-      
-      for (const order of (pendingOrders || [])) {
-        const orderAmount = order.base_price * order.quantity;
-        if (remainingPayment >= orderAmount) {
-          ordersToClear.push({ id: order.id, order_number: order.order_number, amount: orderAmount });
-          remainingPayment -= orderAmount;
-        }
-        if (remainingPayment <= 0) break;
-      }
-
-      // Deduct from wallet and reduce postpaid used
-      const newWalletBalance = walletBalance - amount;
-      const newPostpaidUsed = postpaidUsed - amount;
-
-      // Record postpaid transaction
-      const { error: txError } = await supabase
-        .from('postpaid_transactions')
-        .insert({
-          user_id: user.id,
-          amount: amount,
-          transaction_type: 'credit_repaid',
-          description: ordersToClear.length > 0 
-            ? `Postpaid repayment - cleared ${ordersToClear.length} order(s): ${ordersToClear.map(o => o.order_number).join(', ')}`
-            : 'Postpaid dues partial repayment from wallet',
-          balance_before: postpaidUsed,
-          balance_after: newPostpaidUsed,
-          status: 'completed',
-        });
-
-      if (txError) throw txError;
-
-      // Update profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          wallet_balance: newWalletBalance,
-          postpaid_used: newPostpaidUsed,
-        })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      // Record wallet transaction
-      const { error: walletTxError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          amount: -amount,
-          type: 'postpaid_repayment',
-          description: ordersToClear.length > 0
-            ? `Postpaid repayment for orders: ${ordersToClear.map(o => o.order_number).join(', ')}`
-            : 'Postpaid dues partial repayment',
-        });
-
-      if (walletTxError) {
-        console.error('Wallet transaction error:', walletTxError);
-      }
-
-      // Mark cleared orders as paid_by_user
-      for (const order of ordersToClear) {
-        const { error: orderUpdateError } = await supabase
-          .from('orders')
-          .update({ 
-            status: 'paid_by_user',
-            postpaid_paid_at: new Date().toISOString()
-          })
-          .eq('id', order.id);
-        
-        if (orderUpdateError) {
-          console.error(`Failed to update order ${order.order_number}:`, orderUpdateError);
-        }
-      }
-
-      return { newPostpaidUsed, newWalletBalance, clearedOrders: ordersToClear };
+      return {
+        newPostpaidUsed: data.new_postpaid_used,
+        newWalletBalance: data.new_wallet_balance,
+        clearedOrders: data.orders_cleared || [],
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['postpaid-status'] });
