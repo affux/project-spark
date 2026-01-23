@@ -89,7 +89,8 @@ export const usePayoutRequests = () => {
 
       if (ppError) throw ppError;
 
-      const postpaidDues = Number(profileData?.postpaid_used || 0);
+      // Round to 2 decimal places to handle floating point precision issues
+      const postpaidDues = Math.round(Number(profileData?.postpaid_used || 0) * 100) / 100;
       const allowPayoutWithDues = Boolean(profileData?.allow_payout_with_dues);
       const currentBalance = Number(profileData?.wallet_balance || 0);
       
