@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet, CreditCard, QrCode, Landmark, Copy, Check } from 'lucide-react';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { usePostpaid } from '@/hooks/usePostpaid';
+import { useMyPaymentSettings } from '@/hooks/useUserPaymentSettings';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { USDWalletPayment } from './USDWalletPayment';
@@ -68,6 +69,7 @@ const paymentMethods: PaymentMethod[] = [
 export const AddFundsSection: React.FC = () => {
   const { settings } = usePlatformSettings();
   const { postpaidStatus } = usePostpaid();
+  const { settings: userPaymentSettings } = useMyPaymentSettings();
   const { toast } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
   const [copiedUpiId, setCopiedUpiId] = useState(false);
@@ -100,16 +102,36 @@ export const AddFundsSection: React.FC = () => {
     }
   };
 
+  // Per-user payment method settings (default all true if not set)
+  const userMethodsEnabled = userPaymentSettings?.enabled_methods || {
+    upi: true,
+    wallet: true,
+    bank_transfer: true,
+    usd_wallet: true,
+  };
+
   const methodsConfig = useMemo(() => {
-    return paymentMethods.map(method => ({
-      ...method,
-      // For usd_wallet, also check user-specific walletPaymentEnabled setting
-      enabled: method.id === 'usd_wallet' 
-        ? getRawValue(method.enabledKey) === 'true' && postpaidStatus?.walletPaymentEnabled !== false
-        : getRawValue(method.enabledKey) === 'true',
-      message: getRawValue(method.messageKey) || `${method.name} is not available.`,
-    }));
-  }, [settings, postpaidStatus?.walletPaymentEnabled]);
+    return paymentMethods.map(method => {
+      // Check global setting first
+      const globalEnabled = getRawValue(method.enabledKey) === 'true';
+      
+      // Map method id to user settings key
+      const userSettingsKey = method.id === 'bank' ? 'bank_transfer' : method.id;
+      const userEnabled = userMethodsEnabled[userSettingsKey as keyof typeof userMethodsEnabled] !== false;
+      
+      // For usd_wallet, also check postpaidStatus
+      let enabled = globalEnabled && userEnabled;
+      if (method.id === 'usd_wallet') {
+        enabled = enabled && postpaidStatus?.walletPaymentEnabled !== false;
+      }
+      
+      return {
+        ...method,
+        enabled,
+        message: getRawValue(method.messageKey) || `${method.name} is not available.`,
+      };
+    });
+  }, [settings, postpaidStatus?.walletPaymentEnabled, userMethodsEnabled]);
 
   const selectedConfig = useMemo(() => {
     return methodsConfig.find(m => m.id === selectedMethod);
