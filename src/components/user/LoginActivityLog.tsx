@@ -44,7 +44,7 @@ const actionConfig: Record<string, { label: string; icon: React.ComponentType<an
 export const LoginActivityLog: React.FC = () => {
   const { user } = useAuth();
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading, error } = useQuery({
     queryKey: ['user-login-activity', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -56,10 +56,15 @@ export const LoginActivityLog: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching IP logs:', error);
+        throw error;
+      }
       return data as IPLog[];
     },
     enabled: !!user?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
@@ -153,8 +158,22 @@ export const LoginActivityLog: React.FC = () => {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Monitor className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No activity logs found</p>
-            <p className="text-sm">Your login history will appear here</p>
+            {!user?.id ? (
+              <>
+                <p>Please log in to view activity</p>
+                <p className="text-sm">Sign in to see your login history</p>
+              </>
+            ) : error ? (
+              <>
+                <p>Failed to load activity logs</p>
+                <p className="text-sm">Please try refreshing the page</p>
+              </>
+            ) : (
+              <>
+                <p>No activity logs found</p>
+                <p className="text-sm">Your login history will appear here</p>
+              </>
+            )}
           </div>
         )}
       </CardContent>
