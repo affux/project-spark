@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { logIPAction } from '@/hooks/useIPLogger';
 
 export interface PostpaidTransaction {
   id: string;
@@ -138,7 +139,12 @@ export const usePostpaid = () => {
         clearedOrders: data.orders_cleared || [],
       };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Log IP for postpaid repayment
+      if (user?.id) {
+        await logIPAction(user.id, 'postpaid_repayment');
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['postpaid-status'] });
       queryClient.invalidateQueries({ queryKey: ['postpaid-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });

@@ -35,6 +35,7 @@ const actionConfig: Record<string, { label: string; icon: React.ComponentType<an
   order_placed: { label: 'Order Placed', icon: ShoppingBag, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
   payout_request: { label: 'Payout Request', icon: Wallet, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   profile_update: { label: 'Profile Update', icon: UserCog, color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
+  postpaid_repayment: { label: 'Postpaid Repayment', icon: Wallet, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
 };
 
 export const LoginActivityLog: React.FC = () => {
