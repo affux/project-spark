@@ -1,1 +1,7 @@
 project_id = "pjfhkopecutrxebrfnqh"
+
+[functions.check-admin-exists]
+verify_jwt = false
+
+[functions.create-first-admin]
+verify_jwt = false
