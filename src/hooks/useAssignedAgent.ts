@@ -83,12 +83,12 @@ export const useAssignedAgent = () => {
 
       // No Indian name, use the secure RPC function to get only the agent's name
       // This prevents exposure of sensitive profile data (email, IP, wallet balance, etc.)
-      const { data: agentName, error: agentError } = await supabase
-        .rpc('get_assigned_agent_name', { p_user_id: user.id });
+      const { data: agentData, error: agentError } = await supabase
+        .rpc('get_assigned_agent_name', { p_user_id: user.id }) as { data: { agent_name: string; is_online: boolean }[] | null; error: any };
 
-      console.log('[useAssignedAgent] Agent name from RPC:', agentName);
+      console.log('[useAssignedAgent] Agent name from RPC:', agentData);
 
-      if (agentError || !agentName) {
+      if (agentError || !agentData || agentData.length === 0) {
         // Fallback to "Support" if we can't get the name
         return {
           id: session.assigned_agent_id,
@@ -101,7 +101,7 @@ export const useAssignedAgent = () => {
 
       return {
         id: session.assigned_agent_id,
-        name: agentName,
+        name: agentData[0].agent_name || 'Support',
         isOnline: !!isOnline,
         lastSeenAt: presence?.last_seen_at || null,
         isChatClosed,

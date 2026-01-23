@@ -6,8 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 export interface TutorialCompletion {
   id: string;
   user_id: string;
-  tutorial_id: string;
-  watched_at: string;
+  video_id: string;
+  completed_at: string;
   created_at: string;
 }
 
@@ -18,7 +18,7 @@ export const useVideoTutorialProgress = () => {
 
   const { data: completions = [], isLoading } = useQuery({
     queryKey: ['video-tutorial-completions', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<TutorialCompletion[]> => {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
@@ -31,29 +31,26 @@ export const useVideoTutorialProgress = () => {
         throw error;
       }
 
-      return data as TutorialCompletion[];
+      return (data || []) as TutorialCompletion[];
     },
     enabled: !!user?.id,
   });
 
   const markAsWatchedMutation = useMutation({
-    mutationFn: async (tutorialId: string) => {
+    mutationFn: async (videoId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('video_tutorial_completions')
         .upsert({
           user_id: user.id,
-          tutorial_id: tutorialId,
-          watched_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,tutorial_id',
-        })
-        .select()
-        .single();
+          video_id: videoId,
+          completed_at: new Date().toISOString(),
+        } as any, {
+          onConflict: 'user_id,video_id',
+        });
 
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['video-tutorial-completions'] });
@@ -73,14 +70,14 @@ export const useVideoTutorialProgress = () => {
   });
 
   const unmarkAsWatchedMutation = useMutation({
-    mutationFn: async (tutorialId: string) => {
+    mutationFn: async (videoId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { error } = await supabase
         .from('video_tutorial_completions')
         .delete()
         .eq('user_id', user.id)
-        .eq('tutorial_id', tutorialId);
+        .eq('video_id', videoId);
 
       if (error) throw error;
     },
@@ -92,8 +89,8 @@ export const useVideoTutorialProgress = () => {
     },
   });
 
-  const isTutorialWatched = (tutorialId: string) => {
-    return completions.some((c) => c.tutorial_id === tutorialId);
+  const isTutorialWatched = (videoId: string) => {
+    return completions.some((c) => c.video_id === videoId);
   };
 
   const watchedCount = completions.length;
