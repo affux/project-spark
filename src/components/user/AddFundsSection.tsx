@@ -230,47 +230,71 @@ export const AddFundsSection: React.FC = () => {
                   {selectedConfig.message}
                 </p>
                 
-                {/* UPI QR Code and ID Display */}
-                {selectedMethod === 'upi' && selectedConfig.enabled && (
-                  <div className="mt-4 space-y-4">
-                    {/* QR Code */}
-                    {upiQrUrl && (
-                      <div className="flex flex-col items-center">
-                        <div className="p-3 bg-white rounded-xl shadow-md border">
-                          <img 
-                            src={upiQrUrl} 
-                            alt="UPI QR Code" 
-                            className="w-40 h-40 object-contain"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 text-center">
-                          Scan this QR code with any UPI app to pay
-                        </p>
+                {/* UPI Section */}
+                {selectedMethod === 'upi' && (
+                  <>
+                    {/* UPI Enabled - Show QR Code and ID */}
+                    {selectedConfig.enabled && (upiQrUrl || upiId) && (
+                      <div className="mt-4 space-y-4">
+                        {/* QR Code */}
+                        {upiQrUrl && (
+                          <div className="flex flex-col items-center">
+                            <div className="p-3 bg-white rounded-xl shadow-md border">
+                              <img 
+                                src={upiQrUrl} 
+                                alt="UPI QR Code" 
+                                className="w-40 h-40 object-contain"
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              Scan this QR code with any UPI app to pay
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* UPI ID with Copy */}
+                        {upiId && (
+                          <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg border">
+                            <span className="text-sm font-medium text-muted-foreground">UPI ID:</span>
+                            <code className="font-mono text-sm bg-background px-2 py-1 rounded border">
+                              {upiId}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCopyUpiId}
+                              className="h-8 px-2"
+                            >
+                              {copiedUpiId ? (
+                                <Check className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                     
-                    {/* UPI ID with Copy */}
-                    {upiId && (
-                      <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                        <span className="text-sm font-medium text-muted-foreground">UPI ID:</span>
-                        <code className="font-mono text-sm bg-background px-2 py-1 rounded border">
-                          {upiId}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleCopyUpiId}
-                          className="h-8 px-2"
-                        >
-                          {copiedUpiId ? (
-                            <Check className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </Button>
+                    {/* UPI Enabled but no QR/ID configured */}
+                    {selectedConfig.enabled && !upiQrUrl && !upiId && (
+                      <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                            <QrCode className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-amber-800 dark:text-amber-200">
+                              UPI Details Not Configured
+                            </h5>
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
+                              UPI payment is enabled but payment details are not yet configured. Please contact support.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
