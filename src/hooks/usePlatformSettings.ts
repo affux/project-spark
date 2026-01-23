@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { createAuditLog } from '@/lib/auditLog';
 
 export interface PlatformSetting {
   id: string;
@@ -628,15 +629,14 @@ export const usePlatformSettings = () => {
 
       // Create audit log for setting change
       if (user?.id) {
-        await supabase.rpc('create_audit_log', {
-          _action_type: 'setting_changed',
-          _entity_type: 'platform_settings',
-          _entity_id: null,
-          _user_id: null,
-          _admin_id: user.id,
-          _old_value: oldValue !== undefined ? { [key]: oldValue } : null,
-          _new_value: { [key]: value },
-          _reason: `Platform setting "${key}" updated`,
+        await createAuditLog({
+          actionType: 'setting_changed',
+          entityType: 'platform_settings',
+          entityId: key,
+          adminId: user.id,
+          oldValue: oldValue !== undefined ? { [key]: oldValue } : undefined,
+          newValue: { [key]: value },
+          reason: `Platform setting "${key}" updated`,
         });
       }
     },
