@@ -99,6 +99,8 @@ export interface SettingsMap {
   payment_method_wallet_balance_message: string;
   payment_method_upi_enabled: boolean;
   payment_method_upi_message: string;
+  upi_qr_url: string;
+  upi_id: string;
   payment_method_card_enabled: boolean;
   payment_method_card_message: string;
   payment_method_bank_enabled: boolean;
@@ -264,6 +266,8 @@ export const usePlatformSettings = () => {
       payment_method_wallet_balance_message: 'Pay using your available wallet balance.',
       payment_method_upi_enabled: false,
       payment_method_upi_message: 'UPI payment is not available for your account.',
+      upi_qr_url: '',
+      upi_id: '',
       payment_method_card_enabled: false,
       payment_method_card_message: 'Card payments are disabled. Please contact admin.',
       payment_method_bank_enabled: false,
@@ -493,6 +497,12 @@ export const usePlatformSettings = () => {
           break;
         case 'payment_method_upi_message':
           map.payment_method_upi_message = setting.value || 'UPI payment is not available for your account.';
+          break;
+        case 'upi_qr_url':
+          map.upi_qr_url = setting.value || '';
+          break;
+        case 'upi_id':
+          map.upi_id = setting.value || '';
           break;
         case 'payment_method_card_enabled':
           map.payment_method_card_enabled = setting.value === 'true';

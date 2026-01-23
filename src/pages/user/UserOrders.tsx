@@ -16,7 +16,7 @@ import { EarningsChart } from '@/components/user/EarningsChart';
 import { OrderStatusChart } from '@/components/user/OrderStatusChart';
 import { downloadCSV } from '@/lib/exportUtils';
 
-import { Search, CreditCard, AlertCircle, Loader2, CheckCircle2, Wallet, ArrowRight, Smartphone, Building, Upload, FileCheck, ZoomIn, X, Download, BarChart3 } from 'lucide-react';
+import { Search, CreditCard, AlertCircle, Loader2, CheckCircle2, Wallet, ArrowRight, Smartphone, Building, Upload, FileCheck, ZoomIn, X, Download, BarChart3, Copy, Check, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -59,6 +59,7 @@ const UserOrders: React.FC = () => {
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [copiedUpiId, setCopiedUpiId] = useState(false);
   const { toast } = useToast();
 
   // Enable real-time updates
@@ -134,6 +135,29 @@ const UserOrders: React.FC = () => {
     setPaymentProofFile(null);
     setPaymentProofPreview(null);
     setIsPayDialogOpen(true);
+  };
+
+  // Get UPI details from settings
+  const upiQrUrl = settingsMap.upi_qr_url;
+  const upiId = settingsMap.upi_id;
+
+  const handleCopyUpiId = async () => {
+    if (!upiId) return;
+    try {
+      await navigator.clipboard.writeText(upiId);
+      setCopiedUpiId(true);
+      toast({
+        title: 'Copied!',
+        description: 'UPI ID copied to clipboard.',
+      });
+      setTimeout(() => setCopiedUpiId(false), 2000);
+    } catch {
+      toast({
+        title: 'Failed to copy',
+        description: 'Please copy the UPI ID manually.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const validateAndSetFile = (file: File) => {
@@ -808,11 +832,71 @@ const UserOrders: React.FC = () => {
                       </div>
                     )}
                     
-                    {/* Show selected payment method message - for non-wallet/non-postpaid methods */}
-                    {selectedPaymentMethod && selectedPaymentMethod !== 'usd_wallet' && selectedPaymentMethod !== 'wallet_balance' && selectedPaymentMethod !== 'postpaid' && (
+                    {/* Show selected payment method message - for non-wallet/non-postpaid/non-upi methods */}
+                    {selectedPaymentMethod && selectedPaymentMethod !== 'usd_wallet' && selectedPaymentMethod !== 'wallet_balance' && selectedPaymentMethod !== 'postpaid' && selectedPaymentMethod !== 'upi' && (
                       <div className="mt-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
                         <p className="text-sm text-blue-700 dark:text-blue-300">
                           {enabledPaymentMethods.find(m => m.id === selectedPaymentMethod)?.message}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* UPI Payment - Show QR Code and UPI ID */}
+                {selectedPaymentMethod === 'upi' && (
+                  <div className="p-4 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 space-y-4">
+                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                      <QrCode className="w-5 h-5" />
+                      <span className="font-medium">Pay via UPI</span>
+                    </div>
+                    
+                    {/* Check if UPI details are configured */}
+                    {(upiQrUrl || upiId) ? (
+                      <div className="space-y-4">
+                        {/* QR Code */}
+                        {upiQrUrl && (
+                          <div className="flex flex-col items-center">
+                            <div className="p-3 bg-white rounded-xl shadow-md border">
+                              <img 
+                                src={upiQrUrl} 
+                                alt="UPI QR Code" 
+                                className="w-40 h-40 object-contain"
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              Scan this QR code with any UPI app to pay
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* UPI ID with Copy */}
+                        {upiId && (
+                          <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-lg border">
+                            <span className="text-sm font-medium text-muted-foreground">UPI ID:</span>
+                            <code className="font-mono text-sm bg-background px-2 py-1 rounded border">
+                              {upiId}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCopyUpiId}
+                              className="h-8 px-2"
+                            >
+                              {copiedUpiId ? (
+                                <Check className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
+                        <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          UPI payment details are not configured. Please contact admin.
                         </p>
                       </div>
                     )}
