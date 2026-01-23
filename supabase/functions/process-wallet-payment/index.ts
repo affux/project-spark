@@ -29,11 +29,30 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { orderId, amount } = await req.json();
+    const { orderId } = await req.json();
 
-    if (!orderId || !amount) {
-      throw new Error('orderId and amount are required');
+    if (!orderId) {
+      throw new Error('orderId is required');
     }
+
+    // Get the order first to calculate the amount
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, order_number, base_price, quantity, status, dropshipper_user_id')
+      .eq('id', orderId)
+      .eq('dropshipper_user_id', user.id)
+      .single();
+
+    if (orderError || !order) {
+      throw new Error('Order not found or access denied');
+    }
+
+    if (order.status !== 'pending_payment') {
+      throw new Error(`Order is not pending payment. Current status: ${order.status}`);
+    }
+
+    // Calculate the amount from the order
+    const amount = order.base_price * order.quantity;
 
     // Get user's wallet balance
     const { data: profile, error: profileError } = await supabase
@@ -47,23 +66,7 @@ serve(async (req) => {
     }
 
     if (profile.wallet_balance < amount) {
-      throw new Error('Insufficient wallet balance');
-    }
-
-    // Get the order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .eq('dropshipper_user_id', user.id)
-      .single();
-
-    if (orderError || !order) {
-      throw new Error('Order not found');
-    }
-
-    if (order.status !== 'pending_payment') {
-      throw new Error('Order is not pending payment');
+      throw new Error(`Insufficient wallet balance. Required: $${amount.toFixed(2)}, Available: $${profile.wallet_balance.toFixed(2)}`);
     }
 
     // Deduct from wallet
@@ -74,11 +77,11 @@ serve(async (req) => {
       .eq('user_id', user.id);
 
     if (updateError) {
-      throw updateError;
+      throw new Error(`Failed to update wallet: ${updateError.message}`);
     }
 
-    // Record transaction
-    await supabase
+    // Record wallet transaction
+    const { error: txError } = await supabase
       .from('wallet_transactions')
       .insert({
         user_id: user.id,
@@ -88,8 +91,12 @@ serve(async (req) => {
         order_id: orderId
       });
 
+    if (txError) {
+      console.error('Failed to record wallet transaction:', txError);
+    }
+
     // Update order status
-    await supabase
+    const { error: orderUpdateError } = await supabase
       .from('orders')
       .update({ 
         status: 'paid_by_user', 
@@ -98,18 +105,40 @@ serve(async (req) => {
       })
       .eq('id', orderId);
 
-    console.log('Wallet payment processed:', { orderId, amount, userId: user.id });
+    if (orderUpdateError) {
+      throw new Error(`Failed to update order: ${orderUpdateError.message}`);
+    }
+
+    // Record order status history
+    await supabase
+      .from('order_status_history')
+      .insert({
+        order_id: orderId,
+        old_status: 'pending_payment',
+        new_status: 'paid_by_user',
+        changed_by: user.id,
+        changed_by_type: 'user',
+        notes: `Paid $${amount.toFixed(2)} using wallet balance`
+      });
+
+    console.log('Wallet payment processed:', { orderId, amount, userId: user.id, newBalance });
 
     return new Response(
-      JSON.stringify({ success: true, newBalance, message: 'Payment processed successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        newBalance, 
+        amount,
+        orderNumber: order.order_number,
+        message: 'Payment processed successfully' 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error: unknown) {
     console.error('Error in process-wallet-payment:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ success: false, error: message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });
