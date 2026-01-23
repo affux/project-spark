@@ -80,6 +80,12 @@ export const logIPAction = async (
   actionType: IPActionType
 ): Promise<boolean> => {
   try {
+    // Validate inputs
+    if (!userId) {
+      console.error('Cannot log IP action: userId is required');
+      return false;
+    }
+
     const ipInfo = await getClientIPInfo();
     if (!ipInfo?.ip) {
       console.error('Could not get IP address for logging');
@@ -89,7 +95,7 @@ export const logIPAction = async (
     console.log('Logging IP action:', { userId, actionType, ipInfo });
 
     // Use the secure SECURITY DEFINER function instead of direct insert
-    const { error } = await supabase.rpc('log_ip_action', {
+    const { data, error } = await supabase.rpc('log_ip_action', {
       _user_id: userId,
       _ip_address: ipInfo.ip,
       _action_type: actionType,
@@ -99,17 +105,23 @@ export const logIPAction = async (
     });
 
     if (error) {
-      console.error('Failed to log IP action:', error);
+      console.error('Failed to log IP action:', error.message, error.details, error.hint);
       return false;
     }
 
-    // Also update the latest IP on the profile
-    await supabase
+    console.log('IP action logged successfully, id:', data);
+
+    // Also update the latest IP on the profile (best effort)
+    supabase
       .from('profiles')
       .update({ last_ip_address: ipInfo.ip })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .then(({ error: profileError }) => {
+        if (profileError) {
+          console.warn('Failed to update profile IP:', profileError.message);
+        }
+      });
 
-    console.log('IP action logged successfully');
     return true;
   } catch (error) {
     console.error('Error logging IP action:', error);
