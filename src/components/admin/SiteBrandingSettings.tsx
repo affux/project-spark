@@ -155,22 +155,28 @@ export const SiteBrandingSettings: React.FC = () => {
           <div className="flex items-start gap-4">
             {/* Preview */}
             <div className={cn(
-              "w-16 h-16 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30 shrink-0",
+              "w-16 h-16 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30 shrink-0 relative",
               faviconUrl && "border-solid border-primary/30"
             )}>
               {faviconUrl ? (
-                <img 
-                  src={faviconUrl} 
-                  alt="Favicon preview" 
-                  className="w-12 h-12 object-contain"
-                />
+                <>
+                  <img 
+                    src={faviconUrl} 
+                    alt="Favicon preview" 
+                    className="w-12 h-12 object-contain"
+                    key={faviconUrl}
+                  />
+                  <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                    Current
+                  </span>
+                </>
               ) : (
                 <ImageIcon className="w-6 h-6 text-muted-foreground" />
               )}
             </div>
 
             <div className="flex-1 space-y-2">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
@@ -184,7 +190,7 @@ export const SiteBrandingSettings: React.FC = () => {
                   ) : (
                     <Upload className="w-4 h-4" />
                   )}
-                  Upload Icon
+                  {faviconUrl ? 'Change Icon' : 'Upload Icon'}
                 </Button>
                 {faviconUrl && (
                   <Button
