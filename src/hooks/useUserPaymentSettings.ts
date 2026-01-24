@@ -26,6 +26,20 @@ const defaultEnabledMethods = {
   usd_wallet: true,
 };
 
+// Helper to safely parse enabled_methods from database JSON
+const parseEnabledMethods = (data: unknown): typeof defaultEnabledMethods => {
+  if (!data || typeof data !== 'object') {
+    return defaultEnabledMethods;
+  }
+  const obj = data as Record<string, unknown>;
+  return {
+    upi: typeof obj.upi === 'boolean' ? obj.upi : true,
+    wallet: typeof obj.wallet === 'boolean' ? obj.wallet : true,
+    bank_transfer: typeof obj.bank_transfer === 'boolean' ? obj.bank_transfer : true,
+    usd_wallet: typeof obj.usd_wallet === 'boolean' ? obj.usd_wallet : true,
+  };
+};
+
 export const useUserPaymentSettings = (userId?: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +69,11 @@ export const useUserPaymentSettings = (userId?: string) => {
         } as Partial<UserPaymentSettings>;
       }
       
-      return data as UserPaymentSettings;
+      // Parse enabled_methods safely from JSON
+      return {
+        ...data,
+        enabled_methods: parseEnabledMethods(data.enabled_methods),
+      } as UserPaymentSettings;
     },
     enabled: !!userId,
   });
@@ -151,7 +169,11 @@ export const useMyPaymentSettings = () => {
         };
       }
       
-      return data as UserPaymentSettings;
+      // Parse enabled_methods safely from JSON
+      return {
+        ...data,
+        enabled_methods: parseEnabledMethods(data.enabled_methods),
+      } as UserPaymentSettings;
     },
   });
 
