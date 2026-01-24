@@ -363,6 +363,16 @@ const UserPayments: React.FC = () => {
     e.preventDefault();
     const amount = parseFloat(payoutAmount);
     
+    // Check for NaN or invalid amount first
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: 'Invalid Amount',
+        description: 'Please enter a valid payout amount.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     if (amount < minPayoutAmount) {
       toast({
         title: 'Invalid Amount',
