@@ -2024,6 +2024,14 @@ export type Database = {
         }
         Returns: string
       }
+      decrypt_sensitive_data: {
+        Args: { ciphertext: string; encryption_key: string }
+        Returns: string
+      }
+      encrypt_sensitive_data: {
+        Args: { encryption_key: string; plaintext: string }
+        Returns: string
+      }
       get_assigned_agent_name: {
         Args: { p_user_id: string }
         Returns: {

@@ -26,7 +26,9 @@ import {
   Download,
   Image as ImageIcon,
   ZoomIn,
-  X
+  X,
+  Phone,
+  Lock
 } from 'lucide-react';
 import {
   Dialog,
@@ -139,6 +141,11 @@ const AdminOrders: React.FC = () => {
   const [proofSignedUrl, setProofSignedUrl] = useState<string | null>(null);
   const [isProofUrlLoading, setIsProofUrlLoading] = useState(false);
   const [isProofDownloading, setIsProofDownloading] = useState(false);
+
+  // Decrypted customer data state
+  const [decryptedPhone, setDecryptedPhone] = useState<string | null>(null);
+  const [decryptedAddress, setDecryptedAddress] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
   
   const { 
     orders, 
@@ -217,6 +224,61 @@ const AdminOrders: React.FC = () => {
       cancelled = true;
     };
   }, [isViewDialogOpen, selectedOrder?.payment_proof_url, toast]);
+
+  // Decrypt customer data when viewing order details
+  useEffect(() => {
+    if (!isViewDialogOpen || !selectedOrder?.id) {
+      setDecryptedPhone(null);
+      setDecryptedAddress(null);
+      setIsDecrypting(false);
+      return;
+    }
+
+    // Check if data looks encrypted (starts with ENC:)
+    const phoneEncrypted = selectedOrder.customer_phone?.startsWith('ENC:');
+    const addressEncrypted = selectedOrder.customer_address?.startsWith('ENC:');
+
+    if (!phoneEncrypted && !addressEncrypted) {
+      // Data is not encrypted, use as-is
+      setDecryptedPhone(selectedOrder.customer_phone);
+      setDecryptedAddress(selectedOrder.customer_address);
+      return;
+    }
+
+    let cancelled = false;
+    setIsDecrypting(true);
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('decrypt-order-data', {
+          body: { orderId: selectedOrder.id }
+        });
+
+        if (cancelled) return;
+        if (error) throw error;
+
+        if (data?.success) {
+          setDecryptedPhone(data.data.customer_phone);
+          setDecryptedAddress(data.data.customer_address);
+        } else {
+          // Fallback to raw values
+          setDecryptedPhone(selectedOrder.customer_phone);
+          setDecryptedAddress(selectedOrder.customer_address);
+        }
+      } catch (err) {
+        console.error('Failed to decrypt order data:', err);
+        // Show encrypted data with indicator
+        setDecryptedPhone(selectedOrder.customer_phone);
+        setDecryptedAddress(selectedOrder.customer_address);
+      } finally {
+        if (!cancelled) setIsDecrypting(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isViewDialogOpen, selectedOrder?.id, selectedOrder?.customer_phone, selectedOrder?.customer_address]);
 
   const handleDownloadProof = async () => {
     const proofUrl = selectedOrder?.payment_proof_url;
@@ -649,11 +711,29 @@ const AdminOrders: React.FC = () => {
                     </p>
                     <p className="font-medium">{selectedOrder.customer_email}</p>
                   </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Phone className="w-4 h-4" /> Phone
+                      {isDecrypting && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {selectedOrder.customer_phone?.startsWith('ENC:') && !isDecrypting && (
+                        <span title="Encrypted"><Lock className="w-3 h-3 text-muted-foreground" /></span>
+                      )}
+                    </p>
+                    <p className="font-medium">
+                      {isDecrypting ? 'Decrypting...' : (decryptedPhone || selectedOrder.customer_phone || 'N/A')}
+                    </p>
+                  </div>
                   <div className="space-y-1 col-span-2">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <MapPin className="w-4 h-4" /> Address
+                      {isDecrypting && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {selectedOrder.customer_address?.startsWith('ENC:') && !isDecrypting && (
+                        <span title="Encrypted"><Lock className="w-3 h-3 text-muted-foreground" /></span>
+                      )}
                     </p>
-                    <p className="font-medium">{selectedOrder.customer_address}</p>
+                    <p className="font-medium">
+                      {isDecrypting ? 'Decrypting...' : (decryptedAddress || selectedOrder.customer_address)}
+                    </p>
                   </div>
                 </div>
 

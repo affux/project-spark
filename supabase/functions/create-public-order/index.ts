@@ -14,6 +14,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { 
@@ -43,7 +44,35 @@ serve(async (req) => {
     // Generate order number
     const orderNumber = 'ORD-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
 
-    // Create the order
+    // Encrypt sensitive customer data if encryption key is available
+    let encryptedPhone = customerPhone;
+    let encryptedAddress = customerAddress;
+
+    if (encryptionKey) {
+      // Encrypt phone if provided
+      if (customerPhone) {
+        const { data: phoneData, error: phoneError } = await supabase
+          .rpc('encrypt_sensitive_data', {
+            plaintext: customerPhone,
+            encryption_key: encryptionKey
+          });
+        if (!phoneError && phoneData) {
+          encryptedPhone = phoneData;
+        }
+      }
+
+      // Encrypt address
+      const { data: addressData, error: addressError } = await supabase
+        .rpc('encrypt_sensitive_data', {
+          plaintext: customerAddress,
+          encryption_key: encryptionKey
+        });
+      if (!addressError && addressData) {
+        encryptedAddress = addressData;
+      }
+    }
+
+    // Create the order with encrypted data
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -52,8 +81,8 @@ serve(async (req) => {
         dropshipper_user_id: storefrontProduct.user_id,
         customer_name: customerName,
         customer_email: customerEmail,
-        customer_phone: customerPhone,
-        customer_address: customerAddress,
+        customer_phone: encryptedPhone,
+        customer_address: encryptedAddress,
         quantity: quantity,
         base_price: storefrontProduct.products.base_price,
         selling_price: storefrontProduct.selling_price,
@@ -67,7 +96,7 @@ serve(async (req) => {
       throw orderError;
     }
 
-    console.log('Public order created:', orderNumber);
+    console.log('Public order created with encrypted data:', orderNumber);
 
     return new Response(
       JSON.stringify({ success: true, order }),
