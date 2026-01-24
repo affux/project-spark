@@ -33,6 +33,12 @@ verify_jwt = false
 [functions.delete-user]
 verify_jwt = false
 
+[functions.decrypt-order-data]
+verify_jwt = false
+
+[functions.encrypt-order-data]
+verify_jwt = false
+
 [functions.get-client-ip]
 verify_jwt = false
 
