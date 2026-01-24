@@ -9,6 +9,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "next-themes";
 import { BlockingPopupMessage } from "@/components/popup/BlockingPopupMessage";
 import { DynamicHead } from "@/components/DynamicHead";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 // Pages
 import Index from "./pages/Index";
@@ -174,7 +175,9 @@ const App = () => (
             <BrowserRouter>
               <DynamicHead />
               <BlockingPopupMessage />
-              <AppRoutes />
+              <AppErrorBoundary>
+                <AppRoutes />
+              </AppErrorBoundary>
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
