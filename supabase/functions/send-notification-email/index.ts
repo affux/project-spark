@@ -64,7 +64,6 @@ function formatCurrency(amount: number): string {
 
 // Types that should go to admin
 const ADMIN_NOTIFICATION_TYPES = [
-  'test_email',
   'new_payout_request_admin',
   'payout_cancelled_admin',
   'payout_blocked_pending_payment',
@@ -136,6 +135,12 @@ serve(async (req) => {
     const adminEmail = settingsMap.admin_email;
     const emailEnabled = settingsMap.email_notifications_enabled === 'true';
     const siteName = settingsMap.site_name || 'DropShip Pro';
+
+    // Resend expects a valid RFC5322 "From" header.
+    // If the stored sender is already formatted ("Name <email>"), keep it.
+    const fromAddress = senderEmail.includes('<')
+      ? senderEmail
+      : `${siteName} <${senderEmail}>`;
 
     // Check if email notifications are enabled
     if (!emailEnabled) {
@@ -417,7 +422,7 @@ serve(async (req) => {
     // Send email using Resend API
     const { data: emailData, error: emailError } = await sendEmailWithResend(
       resendApiKey,
-      `${siteName} <${senderEmail}>`,
+      fromAddress,
       [targetEmail],
       emailSubject,
       emailHtml
