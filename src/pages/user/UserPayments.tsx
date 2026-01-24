@@ -78,6 +78,7 @@ import { EarningsChart } from '@/components/user/EarningsChart';
 import { TransactionExport } from '@/components/user/TransactionExport';
 import { PostpaidCreditPanel } from '@/components/user/PostpaidCreditPanel';
 import { usePostpaid } from '@/hooks/usePostpaid';
+import { useMyPaymentSettings } from '@/hooks/useUserPaymentSettings';
 import { logIPAction } from '@/hooks/useIPLogger';
 import { usePayoutRealtimeUser, useWalletRealtimeUser, useProfileRealtimeUser } from '@/hooks/useRealtimeSubscription';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -169,6 +170,7 @@ const UserPayments: React.FC = () => {
   const { settings: publicSettings, isLoading: isLoadingPublicSettings } = usePublicSettings();
   const { isKYCApproved } = useKYC();
   const { postpaidStatus } = usePostpaid();
+  const { settings: myPaymentSettings } = useMyPaymentSettings();
   const queryClient = useQueryClient();
 
   // Pull to refresh handler
@@ -177,6 +179,7 @@ const UserPayments: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['user-dashboard'] }),
       queryClient.invalidateQueries({ queryKey: ['payout-requests'] }),
       queryClient.invalidateQueries({ queryKey: ['postpaid-status'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-payment-settings'] }),
     ]);
   }, [queryClient]);
 
@@ -219,13 +222,15 @@ const UserPayments: React.FC = () => {
   const canRequestPayout = payoutEnabled && isKYCApproved && withdrawableBalance >= minPayoutAmount && !isBlockedByPostpaidDues;
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   
-  // Get available payment methods based on admin settings and user-specific wallet setting
+  // Get available payment methods based on admin settings and user-specific payment settings
+  // For crypto/USDT payouts, check user_payment_settings.enabled_methods.usd_wallet
+  const userUsdtEnabled = myPaymentSettings?.enabled_methods?.usd_wallet !== false;
   const availablePaymentMethods = [
     { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer },
     { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi },
     { value: 'paypal', label: 'PayPal', enabled: payoutMethodsEnabled.paypal },
-    // USDT Wallet - also check user-specific walletPaymentEnabled
-    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && postpaidStatus?.walletPaymentEnabled !== false },
+    // USDT Wallet - check global setting AND user-specific payment settings
+    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && userUsdtEnabled },
   ].filter(m => m.enabled);
 
   // Set default payment method when dialog opens

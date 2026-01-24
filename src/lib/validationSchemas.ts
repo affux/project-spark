@@ -278,7 +278,7 @@ export const productSchema = z.object({
  */
 export const payoutRequestSchema = z.object({
   amount: positiveNumberSchema,
-  payment_method: z.enum(['bank_transfer', 'upi', 'paypal']),
+  payment_method: z.enum(['bank_transfer', 'upi', 'paypal', 'crypto']),
   payment_details: z.object({
     account_name: nameSchema.optional(),
     account_number: z.string().max(50).optional(),
