@@ -36,7 +36,9 @@ import {
   Square,
   RotateCcw,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  Undo2,
+  Trash
 } from 'lucide-react';
 import {
   Select,
@@ -123,6 +125,8 @@ const AdminUsers: React.FC = () => {
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
   const [isPaymentSettingsOpen, setIsPaymentSettingsOpen] = useState(false);
   const [isBulkPaymentSettingsOpen, setIsBulkPaymentSettingsOpen] = useState(false);
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [showDeletedUsers, setShowDeletedUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState<DropshipperUser | null>(null);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetDataCounts, setResetDataCounts] = useState<{
@@ -158,7 +162,9 @@ const AdminUsers: React.FC = () => {
   });
   
   const { 
-    dropshippers, 
+    dropshippers,
+    activeDropshippers,
+    deletedDropshippers,
     isLoading, 
     toggleStatus, 
     isTogglingStatus,
@@ -168,6 +174,8 @@ const AdminUsers: React.FC = () => {
     isUpdatingUserStatus,
     deleteUser,
     isDeletingUser,
+    restoreUser,
+    isRestoringUser,
     updateUserLevel,
     isUpdatingUserLevel,
     resetUserData,
@@ -244,11 +252,14 @@ const AdminUsers: React.FC = () => {
 
   // Filter, sort, and paginate users
   const { paginatedUsers, totalPages, totalFiltered, duesCount } = useMemo(() => {
+    // Use active or deleted users based on toggle
+    const usersToFilter = showDeletedUsers ? deletedDropshippers : activeDropshippers;
+    
     // Count users with dues for badge display
-    const duesCount = dropshippers.filter(u => u.postpaid_used > 0).length;
+    const duesCount = activeDropshippers.filter(u => u.postpaid_used > 0).length;
 
     // Apply search filter
-    let filtered = dropshippers.filter(user =>
+    let filtered = usersToFilter.filter(user =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.storefront_slug?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -302,7 +313,7 @@ const AdminUsers: React.FC = () => {
     const paginatedUsers = filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     return { paginatedUsers, totalPages, totalFiltered: filtered.length, duesCount };
-  }, [dropshippers, searchQuery, sortBy, filterBy, currentPage, kycStatusMap]);
+  }, [activeDropshippers, deletedDropshippers, showDeletedUsers, searchQuery, sortBy, filterBy, currentPage, kycStatusMap]);
 
   // Reset to page 1 when search, sort, or filter changes
   const handleSearchChange = (value: string) => {
@@ -447,8 +458,15 @@ const AdminUsers: React.FC = () => {
     }
   };
 
-  const pendingCount = dropshippers.filter(u => u.user_status === 'pending').length;
-  const approvedCount = dropshippers.filter(u => u.user_status === 'approved').length;
+  const handleRestoreUser = () => {
+    if (!selectedUser) return;
+    restoreUser({ userId: selectedUser.user_id });
+    setIsRestoreDialogOpen(false);
+  };
+
+  const pendingCount = activeDropshippers.filter(u => u.user_status === 'pending').length;
+  const approvedCount = activeDropshippers.filter(u => u.user_status === 'approved').length;
+  const deletedCount = deletedDropshippers.length;
 
   // Show loading state if any data is still loading
   if (isLoading || isLoadingKYC || isLoadingSettings) {
@@ -478,38 +496,64 @@ const AdminUsers: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dropshippers</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {showDeletedUsers ? 'Deleted Users' : 'Dropshippers'}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              Manage your dropshippers. {dropshippers.length} total.
+              {showDeletedUsers 
+                ? `${deletedCount} deleted users that can be recovered.`
+                : `Manage your dropshippers. ${activeDropshippers.length} total.`
+              }
             </p>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            {pendingCount > 0 && (
+            {!showDeletedUsers && pendingCount > 0 && (
               <Badge variant="outline" className="border-amber-500/50 text-amber-600">
                 <Clock className="w-3 h-3 mr-1" />
                 {pendingCount} Pending
               </Badge>
             )}
-            <Badge variant="outline" className="border-emerald-500/50 text-emerald-600">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              {approvedCount} Approved
-            </Badge>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={exportToCSV}
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Export CSV
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsHistoryDialogOpen(true)}
-            >
-              <History className="w-4 h-4 mr-1" />
-              Level History
-            </Button>
+            {!showDeletedUsers && (
+              <Badge variant="outline" className="border-emerald-500/50 text-emerald-600">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                {approvedCount} Approved
+              </Badge>
+            )}
+            {deletedCount > 0 && (
+              <Button 
+                variant={showDeletedUsers ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setShowDeletedUsers(!showDeletedUsers);
+                  setCurrentPage(1);
+                  setSelectedUserIds(new Set());
+                }}
+                className={showDeletedUsers ? "" : "text-red-600 border-red-500/50 hover:bg-red-500/10"}
+              >
+                <Trash className="w-4 h-4 mr-1" />
+                {showDeletedUsers ? 'Back to Active' : `Deleted (${deletedCount})`}
+              </Button>
+            )}
+            {!showDeletedUsers && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={exportToCSV}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Export CSV
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsHistoryDialogOpen(true)}
+                >
+                  <History className="w-4 h-4 mr-1" />
+                  Level History
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -664,21 +708,34 @@ const AdminUsers: React.FC = () => {
               key={user.id}
               className={cn(
                 "dashboard-card opacity-0 animate-slide-up relative",
-                selectedUserIds.has(user.user_id) && "ring-2 ring-primary"
+                selectedUserIds.has(user.user_id) && "ring-2 ring-primary",
+                showDeletedUsers && "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
               )}
               style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
             >
-              {/* Selection Checkbox */}
-              <button
-                onClick={() => toggleUserSelection(user.user_id)}
-                className="absolute top-4 left-4 z-10"
-              >
-                {selectedUserIds.has(user.user_id) ? (
-                  <CheckSquare className="w-5 h-5 text-primary" />
-                ) : (
-                  <Square className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
-                )}
-              </button>
+              {/* Selection Checkbox - only for active users */}
+              {!showDeletedUsers && (
+                <button
+                  onClick={() => toggleUserSelection(user.user_id)}
+                  className="absolute top-4 left-4 z-10"
+                >
+                  {selectedUserIds.has(user.user_id) ? (
+                    <CheckSquare className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Square className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+                  )}
+                </button>
+              )}
+
+              {/* Deleted badge for deleted users */}
+              {showDeletedUsers && (
+                <div className="absolute top-4 left-4 z-10">
+                  <Badge variant="destructive" className="text-xs">
+                    <Trash className="w-3 h-3 mr-1" />
+                    Deleted
+                  </Badge>
+                </div>
+              )}
 
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3 pl-8">
@@ -701,92 +758,119 @@ const AdminUsers: React.FC = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEdit(user)}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit Details
-                    </DropdownMenuItem>
-                    {user.storefront_slug && (
-                      <DropdownMenuItem onClick={() => handleViewStorefront(user)}>
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        View Storefront
-                      </DropdownMenuItem>
+                    {showDeletedUsers ? (
+                      <>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsRestoreDialogOpen(true);
+                          }}
+                          className="text-emerald-600"
+                        >
+                          <Undo2 className="w-4 h-4 mr-2" />
+                          Restore User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Permanently
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem onClick={() => handleEdit(user)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Details
+                        </DropdownMenuItem>
+                        {user.storefront_slug && (
+                          <DropdownMenuItem onClick={() => handleViewStorefront(user)}>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View Storefront
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link to={`/admin/kyc?user=${user.user_id}`}>
+                            <Shield className="w-4 h-4 mr-2" />
+                            View KYC
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedUser(user);
+                          setIsIPLogDialogOpen(true);
+                        }}>
+                          <Globe className="w-4 h-4 mr-2" />
+                          View IP Logs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedUser(user);
+                          setIsResetPasswordDialogOpen(true);
+                        }}>
+                          <Key className="w-4 h-4 mr-2" />
+                          Reset Password
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedUser(user);
+                          setIsPaymentSettingsOpen(true);
+                        }}>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Payment Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {user.user_status === 'pending' && (
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(user, 'approved')}
+                            className="text-emerald-600"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve User
+                          </DropdownMenuItem>
+                        )}
+                        {user.user_status !== 'disabled' && (
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(user, 'disabled')}
+                            className="text-red-600"
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Disable User
+                          </DropdownMenuItem>
+                        )}
+                        {user.user_status === 'disabled' && (
+                          <DropdownMenuItem 
+                            onClick={() => handleUpdateStatus(user, 'approved')}
+                            className="text-emerald-600"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Re-enable User
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsResetDataDialogOpen(true);
+                          }}
+                          className="text-amber-600"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Reset User Data
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete User
+                        </DropdownMenuItem>
+                      </>
                     )}
-                    <DropdownMenuItem asChild>
-                      <Link to={`/admin/kyc?user=${user.user_id}`}>
-                        <Shield className="w-4 h-4 mr-2" />
-                        View KYC
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setSelectedUser(user);
-                      setIsIPLogDialogOpen(true);
-                    }}>
-                      <Globe className="w-4 h-4 mr-2" />
-                      View IP Logs
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setSelectedUser(user);
-                      setIsResetPasswordDialogOpen(true);
-                    }}>
-                      <Key className="w-4 h-4 mr-2" />
-                      Reset Password
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      setSelectedUser(user);
-                      setIsPaymentSettingsOpen(true);
-                    }}>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Payment Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {user.user_status === 'pending' && (
-                      <DropdownMenuItem 
-                        onClick={() => handleUpdateStatus(user, 'approved')}
-                        className="text-emerald-600"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Approve User
-                      </DropdownMenuItem>
-                    )}
-                    {user.user_status !== 'disabled' && (
-                      <DropdownMenuItem 
-                        onClick={() => handleUpdateStatus(user, 'disabled')}
-                        className="text-red-600"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Disable User
-                      </DropdownMenuItem>
-                    )}
-                    {user.user_status === 'disabled' && (
-                      <DropdownMenuItem 
-                        onClick={() => handleUpdateStatus(user, 'approved')}
-                        className="text-emerald-600"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Re-enable User
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsResetDataDialogOpen(true);
-                      }}
-                      className="text-amber-600"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Reset User Data
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Permanently
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -804,9 +888,13 @@ const AdminUsers: React.FC = () => {
                 )}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  Joined {format(new Date(user.created_at), 'MMM dd, yyyy')}
+                  {showDeletedUsers && user.deleted_at ? (
+                    <span>Deleted {format(new Date(user.deleted_at), 'MMM dd, yyyy HH:mm')}</span>
+                  ) : (
+                    <span>Joined {format(new Date(user.created_at), 'MMM dd, yyyy')}</span>
+                  )}
                 </div>
-                {user.last_ip_address && (
+                {!showDeletedUsers && user.last_ip_address && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Shield className="w-4 h-4" />
                     <span className="font-mono text-xs">{user.last_ip_address}</span>
@@ -817,8 +905,28 @@ const AdminUsers: React.FC = () => {
                 )}
               </div>
 
-              {/* Postpaid Dues Section - Only show if user has dues */}
-              {user.postpaid_used > 0 && (
+              {/* Restore button for deleted users */}
+              {showDeletedUsers && (
+                <Button
+                  className="w-full mb-4"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setIsRestoreDialogOpen(true);
+                  }}
+                  disabled={isRestoringUser}
+                >
+                  {isRestoringUser ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Undo2 className="w-4 h-4 mr-2" />
+                  )}
+                  Restore User
+                </Button>
+              )}
+
+              {/* Postpaid Dues Section - Only show if user has dues and not deleted */}
+              {!showDeletedUsers && user.postpaid_used > 0 && (
                 <div className="flex items-center justify-between py-3 px-3 bg-amber-500/5 border border-amber-500/20 rounded-lg mb-3">
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-amber-600" />
@@ -1371,6 +1479,38 @@ const AdminUsers: React.FC = () => {
           selectedUserIds={Array.from(selectedUserIds)}
           onSuccess={clearSelection}
         />
+
+        {/* Restore User Dialog */}
+        <AlertDialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-emerald-600">
+                <Undo2 className="w-5 h-5" />
+                Restore User
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p>
+                  Are you sure you want to restore <strong>{selectedUser?.name}</strong>?
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  The user will be restored with status set to "pending" and will need to be re-approved.
+                  All their existing data (orders, wallet balance, etc.) will be preserved.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleRestoreUser}
+                className="bg-emerald-600 hover:bg-emerald-700"
+                disabled={isRestoringUser}
+              >
+                {isRestoringUser && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Restore User
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
