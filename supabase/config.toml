@@ -54,6 +54,9 @@ verify_jwt = false
 [functions.reset-user-data]
 verify_jwt = false
 
+[functions.restore-user]
+verify_jwt = false
+
 [functions.send-chat-failure-notification]
 verify_jwt = false
 

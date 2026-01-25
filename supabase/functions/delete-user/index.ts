@@ -40,34 +40,72 @@ serve(async (req) => {
       throw new Error('Admin access required');
     }
 
-    const { userId } = await req.json();
+    const { userId, permanent = false } = await req.json();
 
     if (!userId) {
       throw new Error('userId is required');
     }
 
-    // Delete user data from various tables
-    await supabase.from('chat_messages').delete().eq('user_id', userId);
-    await supabase.from('chat_sessions').delete().eq('user_id', userId);
-    await supabase.from('wallet_transactions').delete().eq('user_id', userId);
-    await supabase.from('payout_requests').delete().eq('user_id', userId);
-    await supabase.from('user_notifications').delete().eq('user_id', userId);
-    await supabase.from('user_roles').delete().eq('user_id', userId);
-    await supabase.from('profiles').delete().eq('user_id', userId);
+    if (permanent) {
+      // PERMANENT DELETE - Only if explicitly requested
+      console.log('Permanently deleting user:', userId);
+      
+      // Delete user data from various tables
+      await supabase.from('chat_messages').delete().eq('user_id', userId);
+      await supabase.from('chat_sessions').delete().eq('user_id', userId);
+      await supabase.from('wallet_transactions').delete().eq('user_id', userId);
+      await supabase.from('payout_requests').delete().eq('user_id', userId);
+      await supabase.from('user_notifications').delete().eq('user_id', userId);
+      await supabase.from('user_roles').delete().eq('user_id', userId);
+      await supabase.from('profiles').delete().eq('user_id', userId);
 
-    // Delete the auth user
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+      // Delete the auth user
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
 
-    if (deleteError) {
-      throw deleteError;
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      console.log('User permanently deleted:', userId);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'User permanently deleted', permanent: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    } else {
+      // SOFT DELETE - Default behavior
+      console.log('Soft deleting user:', userId);
+      
+      // Mark profile as deleted
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          is_active: false,
+          user_status: 'disabled'
+        })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Force logout the user
+      await supabase
+        .from('force_logout_events')
+        .insert({
+          user_id: userId,
+          reason: 'Account deleted by admin',
+          triggered_by: user.id
+        });
+
+      console.log('User soft deleted:', userId);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'User deleted (can be recovered)', permanent: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
-
-    console.log('User deleted:', userId);
-
-    return new Response(
-      JSON.stringify({ success: true, message: 'User deleted successfully' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
   } catch (error: unknown) {
     console.error('Error in delete-user:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';

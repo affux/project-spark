@@ -39,6 +39,7 @@ export interface DropshipperUser {
   postpaid_enabled: boolean;
   postpaid_used: number;
   allow_payout_with_dues: boolean;
+  deleted_at: string | null;
 }
 
 export const useAdminUsers = () => {
@@ -96,6 +97,7 @@ export const useAdminUsers = () => {
         postpaid_enabled: Boolean(p.postpaid_enabled),
         postpaid_used: Number(p.postpaid_used || 0),
         allow_payout_with_dues: Boolean(p.allow_payout_with_dues),
+        deleted_at: (p as any).deleted_at || null,
       }));
     },
     enabled: user?.role === 'admin' && !!session,
@@ -314,10 +316,10 @@ export const useAdminUsers = () => {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async ({ userId }: { userId: string }) => {
-      // Call edge function to delete user completely (including auth.users)
+    mutationFn: async ({ userId, permanent = false }: { userId: string; permanent?: boolean }) => {
+      // Call edge function to delete user (soft delete by default)
       const { data, error } = await supabase.functions.invoke('delete-user', {
-        body: { userId },
+        body: { userId, permanent },
       });
 
       if (error) {
@@ -331,11 +333,13 @@ export const useAdminUsers = () => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin-dropshippers'] });
       toast({
         title: 'User Deleted',
-        description: 'The user has been permanently deleted and can no longer login.',
+        description: data?.permanent 
+          ? 'The user has been permanently deleted and cannot be recovered.'
+          : 'The user has been deleted and can be recovered from the Deleted Users tab.',
       });
     },
     onError: (error: Error) => {
@@ -343,6 +347,40 @@ export const useAdminUsers = () => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete user.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const restoreUserMutation = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const { data, error } = await supabase.functions.invoke('restore-user', {
+        body: { userId },
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to restore user');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-dropshippers'] });
+      toast({
+        title: 'User Restored',
+        description: `${data?.user?.name || 'User'} has been restored. Status set to pending for re-approval.`,
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error restoring user:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to restore user.',
         variant: 'destructive',
       });
     },
@@ -420,6 +458,8 @@ export const useAdminUsers = () => {
 
   return {
     dropshippers: dropshippersQuery.data || [],
+    activeDropshippers: (dropshippersQuery.data || []).filter(u => !u.deleted_at),
+    deletedDropshippers: (dropshippersQuery.data || []).filter(u => u.deleted_at),
     isLoading: dropshippersQuery.isLoading,
     error: dropshippersQuery.error,
     refetch: dropshippersQuery.refetch,
@@ -435,6 +475,8 @@ export const useAdminUsers = () => {
     isUpdatingCommission: updateCommissionMutation.isPending,
     deleteUser: deleteUserMutation.mutate,
     isDeletingUser: deleteUserMutation.isPending,
+    restoreUser: restoreUserMutation.mutate,
+    isRestoringUser: restoreUserMutation.isPending,
     resetUserData: resetUserDataMutation.mutate,
     isResettingUserData: resetUserDataMutation.isPending,
     toggleAllowPayoutWithDues: toggleAllowPayoutWithDuesMutation.mutate,

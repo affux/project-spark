@@ -1396,6 +1396,7 @@ export type Database = {
           allow_payout_with_dues: boolean
           commission_override: number | null
           created_at: string
+          deleted_at: string | null
           email: string
           email_2fa_enabled: boolean | null
           id: string
@@ -1423,6 +1424,7 @@ export type Database = {
           allow_payout_with_dues?: boolean
           commission_override?: number | null
           created_at?: string
+          deleted_at?: string | null
           email: string
           email_2fa_enabled?: boolean | null
           id?: string
@@ -1450,6 +1452,7 @@ export type Database = {
           allow_payout_with_dues?: boolean
           commission_override?: number | null
           created_at?: string
+          deleted_at?: string | null
           email?: string
           email_2fa_enabled?: boolean | null
           id?: string
