@@ -10,6 +10,7 @@ import { ThemeProvider } from "next-themes";
 import { BlockingPopupMessage } from "@/components/popup/BlockingPopupMessage";
 import { DynamicHead } from "@/components/DynamicHead";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { initGlobalLinkTracking } from "@/hooks/useVisitorTracking";
 
 // Pages
 import Index from "./pages/Index";
@@ -164,6 +165,20 @@ const AppRoutes = () => {
   );
 };
 
+// Initialize global link tracking once
+let globalTrackingInitialized = false;
+
+const GlobalTrackingInitializer = () => {
+  useEffect(() => {
+    if (!globalTrackingInitialized) {
+      globalTrackingInitialized = true;
+      const cleanup = initGlobalLinkTracking();
+      return cleanup;
+    }
+  }, []);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="trading" enableSystem={false} themes={['light', 'dark', 'trading', 'blue', 'green', 'purple', 'custom']}>
@@ -173,6 +188,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <GlobalTrackingInitializer />
               <DynamicHead />
               <BlockingPopupMessage />
               <AppErrorBoundary>
