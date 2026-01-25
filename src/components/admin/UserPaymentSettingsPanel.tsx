@@ -70,15 +70,30 @@ export const UserPaymentSettingsPanel: React.FC<UserPaymentSettingsPanelProps> =
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Safe parser for enabled_methods to prevent crashes from malformed data
+  const parseEnabledMethods = (data: unknown) => {
+    const defaults = {
+      upi: true,
+      wallet: true,
+      bank_transfer: true,
+      usd_wallet: true,
+    };
+    if (!data || typeof data !== 'object') {
+      return defaults;
+    }
+    const obj = data as Record<string, unknown>;
+    return {
+      upi: typeof obj.upi === 'boolean' ? obj.upi : true,
+      wallet: typeof obj.wallet === 'boolean' ? obj.wallet : true,
+      bank_transfer: typeof obj.bank_transfer === 'boolean' ? obj.bank_transfer : true,
+      usd_wallet: typeof obj.usd_wallet === 'boolean' ? obj.usd_wallet : true,
+    };
+  };
+
   // Load settings when user changes
   useEffect(() => {
     if (settings) {
-      setEnabledMethods(settings.enabled_methods || {
-        upi: true,
-        wallet: true,
-        bank_transfer: true,
-        usd_wallet: true,
-      });
+      setEnabledMethods(parseEnabledMethods(settings.enabled_methods));
       setCustomUpiId(settings.custom_upi_id || '');
       setCustomUpiQrUrl(settings.custom_upi_qr_url || '');
       setNotes(settings.notes || '');
