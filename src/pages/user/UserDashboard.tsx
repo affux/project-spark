@@ -263,7 +263,7 @@ const UserDashboard: React.FC = () => {
                     <span className="text-sm font-medium text-muted-foreground">Wallet Balance</span>
                   </div>
                   <p className="text-3xl font-bold text-foreground">
-                    {currencySymbol}{user.walletBalance.toFixed(2)}
+                    {currencySymbol}{(profile?.wallet_balance ?? user.walletBalance).toFixed(2)}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" asChild>

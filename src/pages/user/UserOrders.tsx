@@ -46,7 +46,7 @@ const statusFilters: { value: OrderStatusFilter; label: string }[] = [
 
 const UserOrders: React.FC = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { orders, isLoading, refetchOrders, profile } = useUserDashboard();
   const { settingsMap, isLoading: isLoadingSettings } = usePlatformSettings();
   const [searchQuery, setSearchQuery] = useState('');
@@ -313,8 +313,12 @@ const UserOrders: React.FC = () => {
       });
       
       triggerPaymentConfetti();
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['user-orders'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['user-dashboard'], exact: false });
+      // Refresh auth context to update wallet balance in UI immediately
+      await refreshUser();
       refetchOrders();
       setIsPayDialogOpen(false);
       setSelectedOrder(null);
@@ -372,9 +376,13 @@ const UserOrders: React.FC = () => {
         className: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
       });
       
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      queryClient.invalidateQueries({ queryKey: ['postpaid-status'] });
-      queryClient.invalidateQueries({ queryKey: ['postpaid-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['postpaid-status'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['postpaid-transactions'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['user-orders'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['user-dashboard'], exact: false });
+      // Refresh auth context to update wallet balance in UI immediately
+      await refreshUser();
       refetchOrders();
       setIsPayDialogOpen(false);
       setSelectedOrder(null);
