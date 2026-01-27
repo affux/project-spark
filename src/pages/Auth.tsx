@@ -13,6 +13,7 @@ import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useTrustedDevice } from '@/hooks/useTrustedDevice';
 import { useEmailMFA } from '@/hooks/useEmailMFA';
+import { usePublicBrandingSettings } from '@/hooks/usePublicBrandingSettings';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: 'Invalid email address' }),
@@ -97,6 +98,9 @@ const Auth: React.FC = () => {
   const { toast } = useToast();
   const { checkTrustedDevice, trustDevice } = useTrustedDevice();
   const { sendEmailCode, verifyEmailCode, isSendingCode, isVerifyingCode, codeSent, resetState: resetEmailMFAState } = useEmailMFA();
+  const { settings: brandingSettings } = usePublicBrandingSettings();
+  
+  const siteName = brandingSettings.site_name || 'AFFUX';
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
@@ -275,7 +279,7 @@ const Auth: React.FC = () => {
         if (result.success) {
           toast({
             title: 'Account created!',
-            description: 'Welcome to DropShip. You are now signed in.',
+            description: `Welcome to ${siteName}. You are now signed in.`,
           });
           navigate('/dashboard');
         } else {
@@ -417,10 +421,18 @@ const Auth: React.FC = () => {
 
         <div className="relative z-10 flex flex-col justify-center px-16 text-foreground">
           <div className="mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shadow-2xl mb-6">
-              <span className="text-accent-foreground font-bold text-2xl">D</span>
-            </div>
-            <h1 className="text-5xl font-bold mb-4 text-foreground">DropShip</h1>
+            {brandingSettings.site_logo_url ? (
+              <img 
+                src={brandingSettings.site_logo_url} 
+                alt={siteName} 
+                className="w-16 h-16 rounded-2xl object-contain shadow-2xl mb-6"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shadow-2xl mb-6">
+                <span className="text-accent-foreground font-bold text-2xl">{siteName.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+            <h1 className="text-5xl font-bold mb-4 text-foreground">{siteName}</h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
               The modern dropshipping platform.<br />
               Empower your dropshippers. Grow together.
@@ -546,7 +558,7 @@ const Auth: React.FC = () => {
                 </div>
                 <h2 className="text-3xl font-bold text-foreground">{isSignUp ? 'Create an account' : 'Welcome back'}</h2>
                 <p className="mt-2 text-muted-foreground">
-                  {isSignUp ? 'Join Afflux and start selling' : 'Sign in to access your dashboard'}
+                  {isSignUp ? `Join ${siteName} and start selling` : 'Sign in to access your dashboard'}
                 </p>
               </div>
 
