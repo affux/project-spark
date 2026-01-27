@@ -194,10 +194,13 @@ export const useProducts = () => {
   // Remove from storefront
   const removeFromStorefrontMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('storefront_products')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
     },
