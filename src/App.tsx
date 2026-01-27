@@ -172,8 +172,12 @@ const GlobalTrackingInitializer = () => {
   useEffect(() => {
     if (!globalTrackingInitialized) {
       globalTrackingInitialized = true;
-      const cleanup = initGlobalLinkTracking();
-      return cleanup;
+      try {
+        const cleanup = initGlobalLinkTracking();
+        return cleanup;
+      } catch (e) {
+        console.warn('Failed to initialize global tracking:', e);
+      }
     }
   }, []);
   return null;
