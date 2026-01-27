@@ -10,6 +10,7 @@ export interface KYCSubmission {
   first_name: string;
   last_name: string;
   date_of_birth: string;
+  mobile_number: string | null;
   aadhaar_number: string;
   pan_number: string;
   aadhaar_front_url: string;

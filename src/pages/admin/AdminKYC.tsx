@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAdminKYC, type KYCWithProfile, type KYCDocumentUrls } from '@/hooks/useAdminKYC';
 import { Button } from '@/components/ui/button';
@@ -7,14 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -24,12 +19,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { 
   Shield, 
   Eye, 
@@ -48,17 +51,20 @@ import {
   ZoomIn,
   X,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  MoreVertical,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { downloadCSV } from '@/lib/exportUtils';
 
 const statusColors: Record<string, string> = {
-  not_submitted: 'bg-gray-500/10 text-gray-600',
-  submitted: 'bg-amber-500/10 text-amber-600',
-  approved: 'bg-emerald-500/10 text-emerald-600',
-  rejected: 'bg-red-500/10 text-red-600',
+  not_submitted: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  submitted: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  approved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  rejected: 'bg-red-500/10 text-red-600 border-red-500/20',
 };
 
 const statusIcons: Record<string, React.ReactNode> = {
@@ -71,6 +77,10 @@ const statusIcons: Record<string, React.ReactNode> = {
 // Mask sensitive numbers
 const maskAadhaar = (num: string) => `XXXX XXXX ${num.slice(-4)}`;
 const maskPAN = (num: string) => `${num.slice(0, 2)}XXXXX${num.slice(-2)}`;
+
+const ITEMS_PER_PAGE = 12;
+
+type FilterType = 'all' | 'kyc_verified' | 'approved' | 'pending' | 'rejected';
 
 const AdminKYC: React.FC = () => {
   const { 
@@ -90,7 +100,7 @@ const AdminKYC: React.FC = () => {
   } = useAdminKYC();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [selectedKYC, setSelectedKYC] = useState<KYCWithProfile | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
@@ -99,23 +109,64 @@ const AdminKYC: React.FC = () => {
   const [documentUrls, setDocumentUrls] = useState<KYCDocumentUrls | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [kycToDelete, setKycToDelete] = useState<KYCWithProfile | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredSubmissions = kycSubmissions.filter(kyc => {
-    const matchesSearch = 
-      kyc.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      kyc.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      kyc.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || kyc.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Filter submissions based on active filter and search
+  const filteredSubmissions = useMemo(() => {
+    return kycSubmissions.filter(kyc => {
+      const matchesSearch = 
+        kyc.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kyc.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kyc.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kyc.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      let matchesFilter = true;
+      switch (activeFilter) {
+        case 'kyc_verified':
+          matchesFilter = kyc.status === 'approved';
+          break;
+        case 'approved':
+          matchesFilter = kyc.status === 'approved';
+          break;
+        case 'pending':
+          matchesFilter = kyc.status === 'submitted';
+          break;
+        case 'rejected':
+          matchesFilter = kyc.status === 'rejected';
+          break;
+        default:
+          matchesFilter = true;
+      }
+      
+      return matchesSearch && matchesFilter;
+    });
+  }, [kycSubmissions, searchTerm, activeFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredSubmissions.length / ITEMS_PER_PAGE);
+  const paginatedSubmissions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSubmissions.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSubmissions, currentPage]);
+
+  // Reset to page 1 when filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, searchTerm]);
+
+  // Count for each filter
+  const counts = useMemo(() => ({
+    all: kycSubmissions.length,
+    kyc_verified: kycSubmissions.filter(k => k.status === 'approved').length,
+    approved: kycSubmissions.filter(k => k.status === 'approved').length,
+    pending: kycSubmissions.filter(k => k.status === 'submitted').length,
+    rejected: kycSubmissions.filter(k => k.status === 'rejected').length,
+  }), [kycSubmissions]);
 
   const handleViewKYC = async (kyc: KYCWithProfile) => {
     setSelectedKYC(kyc);
     setIsViewDialogOpen(true);
-
-    // Load all document URLs
     const urls = await getAllDocumentUrls(kyc);
     setDocumentUrls(urls);
   };
@@ -197,6 +248,109 @@ const AdminKYC: React.FC = () => {
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedSubmissions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedSubmissions.map(k => k.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const getInitials = (kyc: KYCWithProfile) => {
+    const name = kyc.profiles?.name || `${kyc.first_name} ${kyc.last_name}`;
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisiblePages = 3;
+    
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              onClick={() => setCurrentPage(i)}
+              isActive={currentPage === i}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    } else {
+      items.push(
+        <PaginationItem key={1}>
+          <PaginationLink
+            onClick={() => setCurrentPage(1)}
+            isActive={currentPage === 1}
+            className="cursor-pointer"
+          >
+            1
+          </PaginationLink>
+        </PaginationItem>
+      );
+
+      if (currentPage > 3) {
+        items.push(
+          <PaginationItem key="ellipsis-start">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              onClick={() => setCurrentPage(i)}
+              isActive={currentPage === i}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+
+      if (currentPage < totalPages - 2) {
+        items.push(
+          <PaginationItem key="ellipsis-end">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            onClick={() => setCurrentPage(totalPages)}
+            isActive={currentPage === totalPages}
+            className="cursor-pointer"
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    return items;
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -206,7 +360,11 @@ const AdminKYC: React.FC = () => {
             <Skeleton className="h-10 w-64" />
             <Skeleton className="h-10 w-40" />
           </div>
-          <Skeleton className="h-96 w-full rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -228,20 +386,22 @@ const AdminKYC: React.FC = () => {
               </p>
             </div>
           </div>
-          {pendingCount > 0 && (
-            <Badge className="bg-amber-500/10 text-amber-600 text-base px-4 py-2">
-              {pendingCount} Pending Reviews
-            </Badge>
-          )}
-          <Button onClick={handleDownloadAll} variant="outline" disabled={filteredSubmissions.length === 0}>
-            <Download className="w-4 h-4 mr-2" />
-            Export All
-          </Button>
+          <div className="flex items-center gap-2">
+            {pendingCount > 0 && (
+              <Badge className="bg-amber-500/10 text-amber-600 text-base px-4 py-2">
+                {pendingCount} Pending
+              </Badge>
+            )}
+            <Button onClick={handleDownloadAll} variant="outline" disabled={filteredSubmissions.length === 0}>
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-md">
+        {/* Search and Filter Buttons */}
+        <div className="flex flex-col gap-4">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by name or email..."
@@ -250,92 +410,192 @@ const AdminKYC: React.FC = () => {
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="submitted">Pending Review</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter('all')}
+              className="gap-2"
+            >
+              All
+              <Badge variant="secondary" className="ml-1">{counts.all}</Badge>
+            </Button>
+            <Button
+              variant={activeFilter === 'kyc_verified' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter('kyc_verified')}
+              className={cn(
+                "gap-2",
+                activeFilter === 'kyc_verified' && "bg-emerald-600 hover:bg-emerald-700"
+              )}
+            >
+              <CheckCircle className="w-4 h-4" />
+              KYC Verified
+              <Badge variant="secondary" className="ml-1">{counts.kyc_verified}</Badge>
+            </Button>
+            <Button
+              variant={activeFilter === 'approved' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter('approved')}
+              className={cn(
+                "gap-2",
+                activeFilter === 'approved' && "bg-emerald-600 hover:bg-emerald-700"
+              )}
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approved
+              <Badge variant="secondary" className="ml-1">{counts.approved}</Badge>
+            </Button>
+            <Button
+              variant={activeFilter === 'pending' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter('pending')}
+              className={cn(
+                "gap-2",
+                activeFilter === 'pending' && "bg-amber-600 hover:bg-amber-700"
+              )}
+            >
+              <Clock className="w-4 h-4" />
+              Pending
+              <Badge variant="secondary" className="ml-1">{counts.pending}</Badge>
+            </Button>
+            <Button
+              variant={activeFilter === 'rejected' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setActiveFilter('rejected')}
+              className={cn(
+                "gap-2",
+                activeFilter === 'rejected' && "bg-red-600 hover:bg-red-700"
+              )}
+            >
+              <XCircle className="w-4 h-4" />
+              Rejected
+              <Badge variant="secondary" className="ml-1">{counts.rejected}</Badge>
+            </Button>
+          </div>
         </div>
 
-        {/* Table */}
-        <div className="dashboard-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSubmissions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No KYC submissions found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSubmissions.map((kyc) => (
-                  <TableRow key={kyc.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{kyc.profiles?.name || 'Unknown'}</p>
-                        <p className="text-sm text-muted-foreground">{kyc.profiles?.email}</p>
+        {/* Card Grid */}
+        {paginatedSubmissions.length === 0 ? (
+          <div className="text-center py-12">
+            <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No KYC submissions found</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedSubmissions.map((kyc) => (
+                <Card key={kyc.id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+                  <CardContent className="p-4">
+                    {/* Checkbox and Menu */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedIds.has(kyc.id)}
+                          onCheckedChange={() => toggleSelect(kyc.id)}
+                        />
+                        <Avatar className="h-10 w-10 bg-primary/10">
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {getInitials(kyc)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {kyc.profiles?.name || `${kyc.first_name} ${kyc.last_name}`}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {kyc.first_name} {kyc.last_name}
+                          </p>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {kyc.first_name} {kyc.last_name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(kyc.submitted_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={cn("gap-1", statusColors[kyc.status])}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewKYC(kyc)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDownloadKYC(kyc)}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(kyc)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Mail className="w-4 h-4" />
+                      <span className="truncate">{kyc.profiles?.email || 'N/A'}</span>
+                    </div>
+
+                    {/* Submitted Date */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <Calendar className="w-4 h-4" />
+                      <span>Submitted {format(new Date(kyc.submitted_at), 'MMM d, yyyy')}</span>
+                    </div>
+
+                    {/* Mobile Number if available */}
+                    {kyc.mobile_number && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                        <Phone className="w-4 h-4" />
+                        <span>{kyc.mobile_number}</span>
+                      </div>
+                    )}
+
+                    {/* Status Badges */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className={cn("gap-1 text-xs", statusColors[kyc.status])}>
                         {statusIcons[kyc.status]}
-                        {kyc.status.replace('_', ' ')}
+                        {kyc.status === 'approved' ? 'Approved' : kyc.status === 'submitted' ? 'Pending' : kyc.status.replace('_', ' ')}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownloadKYC(kyc)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewKYC(kyc)}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(kyc)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      {kyc.status === 'approved' && (
+                        <Badge className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                          <CheckCircle className="w-3 h-3" />
+                          KYC Verified
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination className="mt-6">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={cn("cursor-pointer", currentPage === 1 && "pointer-events-none opacity-50")}
+                    />
+                  </PaginationItem>
+                  {renderPaginationItems()}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={cn("cursor-pointer", currentPage === totalPages && "pointer-events-none opacity-50")}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
+        )}
       </div>
 
       {/* View KYC Dialog */}
@@ -467,7 +727,7 @@ const AdminKYC: React.FC = () => {
                     </div>
                   )}
 
-                  {/* PAN Card */}
+                  {/* PAN */}
                   {documentUrls?.pan && (
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
@@ -538,7 +798,7 @@ const AdminKYC: React.FC = () => {
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
                         <span className="text-sm font-medium flex items-center gap-2">
-                          <Camera className="w-4 h-4" /> Face Image
+                          <Camera className="w-4 h-4" /> Face Photo
                         </span>
                         <div className="flex gap-2">
                           <Button
@@ -558,7 +818,7 @@ const AdminKYC: React.FC = () => {
                       <div className="p-2 bg-muted/20">
                         <img 
                           src={documentUrls.face_image} 
-                          alt="Face Image" 
+                          alt="Face Photo" 
                           className="w-full h-32 object-contain rounded cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => setPreviewImage(documentUrls.face_image!)}
                         />
@@ -568,70 +828,52 @@ const AdminKYC: React.FC = () => {
                 </div>
               </div>
 
-              {/* Submission Info */}
-              <div className="text-sm text-muted-foreground border-t pt-4">
-                <p>Submitted: {format(new Date(selectedKYC.submitted_at), 'MMM d, yyyy h:mm a')}</p>
-                {selectedKYC.reviewed_at && (
-                  <p>Reviewed: {format(new Date(selectedKYC.reviewed_at), 'MMM d, yyyy h:mm a')}</p>
+              {/* Actions */}
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                {selectedKYC.status === 'submitted' && (
+                  <>
+                    <Button
+                      onClick={handleApprove}
+                      disabled={isApproving}
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      {isApproving ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                      )}
+                      Approve KYC
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setIsRejectDialogOpen(true)}
+                      disabled={isRejecting}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Reject
+                    </Button>
+                  </>
                 )}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 flex-col sm:flex-row">
-            <div className="flex items-center gap-2 flex-1">
-              <Label className="text-sm text-muted-foreground whitespace-nowrap">Change Status:</Label>
-              <Select 
-                value={selectedKYC?.status} 
-                onValueChange={(value: 'submitted' | 'approved' | 'rejected') => handleStatusChange(value)}
-                disabled={isUpdatingStatus}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="submitted">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => selectedKYC && handleDeleteClick(selectedKYC)}
-                disabled={isDeleting}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
-              {selectedKYC?.status === 'submitted' && (
-                <>
+                {selectedKYC.status !== 'submitted' && (
                   <Button
                     variant="outline"
-                    onClick={() => setIsRejectDialogOpen(true)}
-                    disabled={isRejecting}
+                    onClick={() => handleStatusChange('submitted')}
+                    disabled={isUpdatingStatus}
                   >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Reject
+                    Reset to Pending
                   </Button>
-                  <Button
-                    onClick={handleApprove}
-                    disabled={isApproving}
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    {isApproving ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                    )}
-                    Approve
-                  </Button>
-                </>
-              )}
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleDeleteClick(selectedKYC)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </DialogFooter>
             </div>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -639,19 +881,22 @@ const AdminKYC: React.FC = () => {
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-600">Reject KYC</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="w-5 h-5" />
+              Reject KYC Submission
+            </DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting this KYC submission. The user will see this reason and can resubmit.
+              Please provide a reason for rejection. This will be visible to the user.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+              <Label htmlFor="rejection-reason">Rejection Reason</Label>
               <Textarea
                 id="rejection-reason"
+                placeholder="Enter the reason for rejection..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Enter the reason for rejection..."
                 rows={4}
               />
             </div>
@@ -670,7 +915,7 @@ const AdminKYC: React.FC = () => {
               ) : (
                 <XCircle className="w-4 h-4 mr-2" />
               )}
-              Confirm Rejection
+              Reject KYC
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -689,11 +934,9 @@ const AdminKYC: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           {kycToDelete && (
-            <div className="bg-muted/50 rounded-lg p-4 text-sm">
-              <p><strong>User:</strong> {kycToDelete.profiles?.name || 'Unknown'}</p>
-              <p><strong>Email:</strong> {kycToDelete.profiles?.email || 'N/A'}</p>
-              <p><strong>Name:</strong> {kycToDelete.first_name} {kycToDelete.last_name}</p>
-              <p><strong>Status:</strong> {kycToDelete.status}</p>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="font-medium">{kycToDelete.first_name} {kycToDelete.last_name}</p>
+              <p className="text-sm text-muted-foreground">{kycToDelete.profiles?.email}</p>
             </div>
           )}
           <DialogFooter>
@@ -710,11 +953,34 @@ const AdminKYC: React.FC = () => {
               ) : (
                 <Trash2 className="w-4 h-4 mr-2" />
               )}
-              Delete KYC
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+          <DialogContent className="max-w-4xl p-0 overflow-hidden">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 bg-background/80 hover:bg-background"
+                onClick={() => setPreviewImage(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <img
+                src={previewImage}
+                alt="Document Preview"
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </DashboardLayout>
   );
 };
