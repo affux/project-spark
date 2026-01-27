@@ -101,27 +101,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = useCallback(async () => {
     if (!session?.user) return;
 
-    // Validate the current session against the auth server.
-    // If the user was deleted, this will fail and we immediately sign out.
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData?.user) {
-      await signOutAndClear();
-      return;
+    try {
+      // Validate the current session against the auth server.
+      // Only sign out if the user was explicitly deleted/invalid - NOT for network errors
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      // Only sign out for explicit auth failures (user deleted, invalid token)
+      // NOT for network errors or temporary issues
+      if (authError) {
+        // Check if this is a fatal auth error (user deleted/invalid) vs temporary error
+        const isFatalAuthError = authError.message?.toLowerCase().includes('invalid') ||
+                                  authError.message?.toLowerCase().includes('not found') ||
+                                  authError.message?.toLowerCase().includes('expired') ||
+                                  authError.status === 401 ||
+                                  authError.status === 403;
+        
+        if (isFatalAuthError) {
+          console.warn('Fatal auth error, signing out:', authError.message);
+          await signOutAndClear();
+          return;
+        }
+        
+        // For non-fatal errors (network issues, rate limiting), just skip the refresh
+        console.warn('Non-fatal auth error during refresh, skipping:', authError.message);
+        return;
+      }
+      
+      if (!authData?.user) {
+        await signOutAndClear();
+        return;
+      }
+
+      const userProfile = await fetchUserProfile(session.user.id);
+
+      if (!userProfile) {
+        // Profile not found - but don't immediately logout for admins
+        // This could be a temporary DB issue
+        console.warn('Profile not found during refresh for user:', session.user.id);
+        return;
+      }
+
+      // Only apply disabled/inactive checks for regular users, not admins
+      if (userProfile.role !== 'admin') {
+        if (userProfile.userStatus === 'disabled' || !userProfile.isActive) {
+          await signOutAndClear();
+          return;
+        }
+      }
+
+      setUser(userProfile);
+    } catch (error) {
+      // Don't sign out on unexpected errors - could be network issues
+      console.warn('Error during refreshUser, keeping session:', error);
     }
-
-    const userProfile = await fetchUserProfile(session.user.id);
-
-    if (!userProfile) {
-      await signOutAndClear();
-      return;
-    }
-
-    if (userProfile.userStatus === 'disabled' || (!userProfile.isActive && userProfile.role === 'user')) {
-      await signOutAndClear();
-      return;
-    }
-
-    setUser(userProfile);
   }, [session, fetchUserProfile, signOutAndClear]);
 
   useEffect(() => {
@@ -133,22 +165,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentSession?.user) {
           // Defer Supabase calls with setTimeout to prevent deadlock
           setTimeout(async () => {
-            const userProfile = await fetchUserProfile(currentSession.user.id);
+            try {
+              const userProfile = await fetchUserProfile(currentSession.user.id);
 
-            if (!userProfile) {
-              await signOutAndClear();
+              if (!userProfile) {
+                // For new users, profile might not be created yet - don't logout immediately
+                console.warn('Profile not found during auth state change');
+                setIsLoading(false);
+                return;
+              }
+
+              // Only apply disabled/inactive checks for regular users, not admins
+              if (userProfile.role !== 'admin') {
+                if (userProfile.userStatus === 'disabled' || !userProfile.isActive) {
+                  await signOutAndClear();
+                  setIsLoading(false);
+                  return;
+                }
+              }
+
+              setUser(userProfile);
               setIsLoading(false);
-              return;
-            }
-
-            if (userProfile.userStatus === 'disabled' || (!userProfile.isActive && userProfile.role === 'user')) {
-              await signOutAndClear();
+            } catch (error) {
+              console.warn('Error fetching profile during auth state change:', error);
               setIsLoading(false);
-              return;
             }
-
-            setUser(userProfile);
-            setIsLoading(false);
           }, 0);
         } else {
           setUser(null);
@@ -162,22 +203,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(existingSession);
 
       if (existingSession?.user) {
-        const userProfile = await fetchUserProfile(existingSession.user.id);
+        try {
+          const userProfile = await fetchUserProfile(existingSession.user.id);
 
-        if (!userProfile) {
-          await signOutAndClear();
+          if (!userProfile) {
+            // Profile not found - could be timing issue, don't immediately logout
+            console.warn('Profile not found during initial session check');
+            setIsLoading(false);
+            return;
+          }
+
+          // Only apply disabled/inactive checks for regular users, not admins
+          if (userProfile.role !== 'admin') {
+            if (userProfile.userStatus === 'disabled' || !userProfile.isActive) {
+              await signOutAndClear();
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          setUser(userProfile);
           setIsLoading(false);
-          return;
-        }
-
-        if (userProfile.userStatus === 'disabled' || (!userProfile.isActive && userProfile.role === 'user')) {
-          await signOutAndClear();
+        } catch (error) {
+          console.warn('Error fetching profile during initial session check:', error);
           setIsLoading(false);
-          return;
         }
-
-        setUser(userProfile);
-        setIsLoading(false);
       } else {
         setIsLoading(false);
       }

@@ -68,15 +68,8 @@ const ProtectedRoute: React.FC<{
   children: React.ReactNode; 
   allowedRoles?: ('admin' | 'user')[];
 }> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, isLoading, refreshUser } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
-
-  // If an admin deletes this account while it still has a live browser session,
-  // refresh the profile on navigation to immediately revoke dashboard access.
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    void refreshUser();
-  }, [isAuthenticated, location.pathname, refreshUser]);
   
   if (isLoading) {
     return (
