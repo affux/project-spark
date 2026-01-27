@@ -22,6 +22,11 @@ const trackedUrls = new Set<string>();
 
 export const trackVisitor = async (options: TrackOptions): Promise<boolean> => {
   try {
+    // Safety check for window/document availability (SSR protection)
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return false;
+    }
+
     // Create a unique key for deduplication
     const trackKey = `${options.actionType}-${options.pageUrl || ''}-${options.linkClicked || ''}-${Date.now()}`;
     
@@ -50,6 +55,7 @@ export const trackVisitor = async (options: TrackOptions): Promise<boolean> => {
 
     return true;
   } catch (e) {
+    // Silently fail - visitor tracking should never crash the app
     console.warn('Error tracking visitor:', e);
     return false;
   }
@@ -121,39 +127,51 @@ export const useVisitorTracking = (trackPageView = true) => {
 
 // Global click listener for automatic link tracking
 export const initGlobalLinkTracking = () => {
-  const handleClick = (event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    const link = target.closest('a');
-    
-    if (link) {
-      const href = link.getAttribute('href');
-      const linkText = link.textContent?.trim() || '';
-      
-      if (href) {
-        // Check if external link
-        const isExternal = href.startsWith('http') && !href.includes(window.location.hostname);
+  try {
+    const handleClick = (event: MouseEvent) => {
+      try {
+        const target = event.target as HTMLElement;
+        if (!target) return;
         
-        trackVisitor({
-          actionType: isExternal ? 'external_link' : 'link_click',
-          linkClicked: linkText ? `${linkText}: ${href}` : href,
-        });
+        const link = target.closest('a');
+        
+        if (link) {
+          const href = link.getAttribute('href');
+          const linkText = link.textContent?.trim() || '';
+          
+          if (href) {
+            // Check if external link
+            const isExternal = href.startsWith('http') && !href.includes(window.location.hostname);
+            
+            trackVisitor({
+              actionType: isExternal ? 'external_link' : 'link_click',
+              linkClicked: linkText ? `${linkText}: ${href}` : href,
+            });
+          }
+        }
+        
+        // Track button clicks
+        const button = target.closest('button');
+        if (button) {
+          const buttonText = button.textContent?.trim() || button.getAttribute('aria-label') || 'Unknown Button';
+          trackVisitor({
+            actionType: 'button_click',
+            linkClicked: buttonText,
+          });
+        }
+      } catch (e) {
+        // Silently ignore tracking errors to prevent app crashes
+        console.warn('Visitor tracking click error:', e);
       }
-    }
-    
-    // Track button clicks
-    const button = target.closest('button');
-    if (button) {
-      const buttonText = button.textContent?.trim() || button.getAttribute('aria-label') || 'Unknown Button';
-      trackVisitor({
-        actionType: 'button_click',
-        linkClicked: buttonText,
-      });
-    }
-  };
+    };
 
-  document.addEventListener('click', handleClick, { passive: true });
+    document.addEventListener('click', handleClick, { passive: true });
 
-  return () => {
-    document.removeEventListener('click', handleClick);
-  };
+    return () => {
+      document.removeEventListener('click', handleClick);
+    };
+  } catch (e) {
+    console.warn('Failed to initialize global link tracking:', e);
+    return () => {};
+  }
 };
