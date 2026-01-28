@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface AnimatedCounterProps {
@@ -19,10 +19,15 @@ export const AnimatedCounter = React.forwardRef<HTMLDivElement, AnimatedCounterP
 
     const setRefs = (node: HTMLDivElement | null) => {
       localRef.current = node;
+
+      // Forward ref to parent if provided
       if (typeof forwardedRef === 'function') {
         forwardedRef(node);
-      } else if (forwardedRef) {
-        forwardedRef.current = node;
+        return;
+      }
+      if (forwardedRef && typeof forwardedRef === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (forwardedRef as any).current = node;
       }
     };
 
