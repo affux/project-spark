@@ -106,6 +106,7 @@ import { PopupMessageSettings } from '@/components/admin/PopupMessageSettings';
 import { PendingPaymentBlockSettings } from '@/components/admin/PendingPaymentBlockSettings';
 import DeploymentChecklist from '@/components/admin/DeploymentChecklist';
 import ProjectExport from '@/components/admin/ProjectExport';
+import DataBackupManager from '@/components/admin/DataBackupManager';
 import AdminSetupWizard from '@/components/admin/AdminSetupWizard';
 import { SystemHealthDashboard } from '@/components/admin/SystemHealthDashboard';
 import { WorkTypeSettings } from '@/components/admin/WorkTypeSettings';
@@ -2057,6 +2058,9 @@ const AdminSettings: React.FC = () => {
         
         {/* Project Export */}
         <ProjectExport />
+        
+        {/* Data Backup Manager */}
+        <DataBackupManager />
         
         {/* Self-Host Setup */}
         <Card>
