@@ -16,7 +16,7 @@ const contactSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-export const ContactForm: React.FC = () => {
+export const ContactForm = React.forwardRef<HTMLFormElement, object>((_props, ref) => {
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
@@ -92,7 +92,7 @@ export const ContactForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form ref={ref} onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-foreground">Full Name *</Label>
@@ -177,4 +177,6 @@ export const ContactForm: React.FC = () => {
       </Button>
     </form>
   );
-};
+});
+
+ContactForm.displayName = 'ContactForm';
