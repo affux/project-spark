@@ -148,7 +148,11 @@ const ChartTooltipContent = React.forwardRef<
       return null;
     }
 
-    const nestLabel = payload.length === 1 && indicator !== "dot";
+    // Recharts can sometimes include `undefined` entries in payload while data is loading
+    // or during transitions. Filter defensively to avoid runtime crashes.
+    const safePayload = (payload ?? []).filter(Boolean);
+
+    const nestLabel = safePayload.length === 1 && indicator !== "dot";
 
     return (
       <div
@@ -160,14 +164,16 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
-            const key = `${nameKey || item.name || item.dataKey || "value"}`;
+          {safePayload.map((item: any, index: number) => {
+            if (!item) return null;
+
+            const key = `${nameKey || item?.name || item?.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             const indicatorColor = color || item?.payload?.fill || item?.color;
 
             return (
               <div
-                key={item.dataKey}
+                key={item?.dataKey ?? item?.name ?? index}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
                   indicator === "dot" && "items-center",
@@ -241,18 +247,23 @@ const ChartLegendContent = React.forwardRef<
     return null;
   }
 
+  // Recharts legend payload can include undefined entries in some edge cases.
+  const safePayload = (payload ?? []).filter(Boolean);
+
   return (
     <div
       ref={ref}
       className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
     >
-      {payload.map((item) => {
-        const key = `${nameKey || item.dataKey || "value"}`;
+      {safePayload.map((item: any, index: number) => {
+        if (!item) return null;
+
+        const key = `${nameKey || item?.dataKey || "value"}`;
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
         return (
           <div
-            key={item.value}
+            key={item?.value ?? item?.dataKey ?? index}
             className={cn("flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground")}
           >
             {itemConfig?.icon && !hideIcon ? (
