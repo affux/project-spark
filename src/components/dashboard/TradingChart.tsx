@@ -14,6 +14,44 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Recharts' default tooltip implementation reads `item.color` internally.
+// In some edge cases (loading/transitions), payload can contain undefined entries,
+// which causes a crash: "Cannot read properties of undefined (reading 'color')".
+// We provide a defensive custom tooltip so Recharts never touches `item.color`.
+const TradingChartTooltip = ({ active, payload, label, currencySymbol }: any) => {
+  if (!active) return null;
+
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  const revenue = safePayload.find((p: any) => p?.dataKey === 'revenue')?.value;
+  const profit = safePayload.find((p: any) => p?.dataKey === 'profit')?.value;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{label}</div>
+      <div className="mt-1 grid gap-1 text-xs">
+        {typeof revenue === 'number' && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">Revenue</span>
+            <span className="font-mono font-medium tabular-nums text-foreground">
+              {currencySymbol}{revenue.toFixed(2)}
+            </span>
+          </div>
+        )}
+        {typeof profit === 'number' && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">Profit</span>
+            <span className="font-mono font-medium tabular-nums text-foreground">
+              {currencySymbol}{profit.toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface Order {
   id: string;
   selling_price: number;
@@ -185,17 +223,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({ orders, currencySymb
                 strokeOpacity={0.6}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(25, 50%, 30%)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 20px -5px hsl(25, 95%, 53% / 0.3)',
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                formatter={(value: number, name: string) => [
-                  `${currencySymbol}${value.toFixed(2)}`, 
-                  name === 'revenue' ? 'Revenue' : 'Profit'
-                ]}
+                content={<TradingChartTooltip currencySymbol={currencySymbol} />}
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
               />
               <Bar 
                 dataKey="revenue" 
