@@ -16,6 +16,29 @@ interface EarningsChartProps {
   currencySymbol: string;
 }
 
+// Defensive custom tooltip to prevent crashes from undefined payload entries
+const EarningsTooltip = ({ active, payload, label, currencySymbol }: any) => {
+  if (!active) return null;
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  const earnings = safePayload.find((p: any) => p?.dataKey === 'earnings')?.value;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{label}</div>
+      {typeof earnings === 'number' && (
+        <div className="mt-1 flex items-center justify-between gap-4 text-xs">
+          <span className="text-muted-foreground">Earnings</span>
+          <span className="font-mono font-medium tabular-nums text-foreground">
+            {currencySymbol}{earnings.toFixed(2)}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const EarningsChart: React.FC<EarningsChartProps> = ({ orders, currencySymbol }) => {
   const chartData = useMemo(() => {
     const last30Days = Array.from({ length: 30 }, (_, i) => {
@@ -95,16 +118,7 @@ export const EarningsChart: React.FC<EarningsChartProps> = ({ orders, currencySy
               axisLine={false}
               tickFormatter={(value) => `${currencySymbol}${value}`}
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Earnings']}
-            />
+            <Tooltip content={<EarningsTooltip currencySymbol={currencySymbol} />} />
             <Area
               type="monotone"
               dataKey="earnings"

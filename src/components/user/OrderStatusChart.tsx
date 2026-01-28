@@ -27,6 +27,25 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+// Defensive custom tooltip to prevent crashes from undefined payload entries
+const StatusTooltip = ({ active, payload }: any) => {
+  if (!active) return null;
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  const item = safePayload[0];
+  if (!item) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{item.name}</div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        Count: <span className="font-mono font-medium text-foreground">{item.value}</span>
+      </div>
+    </div>
+  );
+};
+
 export const OrderStatusChart: React.FC<OrderStatusChartProps> = ({ orders }) => {
   const chartData = useMemo(() => {
     const statusCounts: Record<string, number> = {};
@@ -96,16 +115,7 @@ export const OrderStatusChart: React.FC<OrderStatusChartProps> = ({ orders }) =>
                 />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: number, name: string) => [value, name]}
-            />
+            <Tooltip content={<StatusTooltip />} />
             <Legend 
               verticalAlign="bottom"
               height={36}
