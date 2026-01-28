@@ -16,7 +16,6 @@ import {
 import { format, subDays, startOfDay } from 'date-fns';
 import { AdminOrder } from '@/hooks/useAdminOrders';
 import { DropshipperUser } from '@/hooks/useAdminDashboard';
-import { cn } from '@/lib/utils';
 
 interface AnalyticsChartsProps {
   orders: AdminOrder[];
@@ -24,6 +23,68 @@ interface AnalyticsChartsProps {
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+// Defensive custom tooltips to prevent crashes from undefined payload entries
+const RevenueTooltip = ({ active, payload, label }: any) => {
+  if (!active) return null;
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  const revenue = safePayload.find((p: any) => p?.dataKey === 'revenue')?.value;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{label}</div>
+      {typeof revenue === 'number' && (
+        <div className="mt-1 flex items-center justify-between gap-4 text-xs">
+          <span className="text-muted-foreground">Revenue</span>
+          <span className="font-mono font-medium tabular-nums text-foreground">${revenue.toFixed(2)}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const BarTooltip = ({ active, payload, label }: any) => {
+  if (!active) return null;
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{label}</div>
+      <div className="mt-1 grid gap-1 text-xs">
+        {safePayload.map((item: any, index: number) => {
+          if (!item) return null;
+          return (
+            <div key={item?.dataKey ?? index} className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">{item?.name || item?.dataKey}</span>
+              <span className="font-mono font-medium tabular-nums text-foreground">{item?.value}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const PieTooltip = ({ active, payload }: any) => {
+  if (!active) return null;
+  const safePayload = (payload ?? []).filter(Boolean);
+  if (!safePayload.length) return null;
+
+  const item = safePayload[0];
+  if (!item) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+      <div className="text-xs font-medium text-foreground">{item.name}</div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        Count: <span className="font-mono font-medium text-foreground">{item.value}</span>
+      </div>
+    </div>
+  );
+};
 
 export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ orders, dropshippers }) => {
   // Generate last 7 days revenue data
@@ -108,15 +169,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ orders, dropsh
                 fontSize={12}
                 tickFormatter={(value) => `$${value}`}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-                labelStyle={{ color: 'hsl(var(--foreground))' }}
-                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
-              />
+              <Tooltip content={<RevenueTooltip />} />
               <Area 
                 type="monotone" 
                 dataKey="revenue" 
@@ -146,14 +199,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ orders, dropsh
                   fontSize={12}
                   width={80}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
-                />
+                <Tooltip content={<BarTooltip />} />
                 <Bar dataKey="orders" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -186,13 +232,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ orders, dropsh
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
+                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-2">
@@ -232,14 +272,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ orders, dropsh
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
-                />
+                <Tooltip content={<BarTooltip />} />
                 <Bar dataKey="orders" name="Units Sold" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
