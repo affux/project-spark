@@ -15,6 +15,15 @@ export const ProofImageGallery: React.FC<ProofImageGalleryProps> = ({ images }) 
   const [signedUrls, setSignedUrls] = useState<Record<number, string>>({});
   const [loadingUrls, setLoadingUrls] = useState(true);
 
+  // Helper function to extract storage path from a full Supabase storage URL
+  const extractStoragePath = (url: string): string | null => {
+    // Match URLs like: https://xxx.supabase.co/storage/v1/object/public/proof-images/path/to/file.jpg
+    // or: https://xxx.supabase.co/storage/v1/object/sign/proof-images/path/to/file.jpg
+    const publicPattern = /\/storage\/v1\/object\/(?:public|sign)\/proof-images\/(.+?)(?:\?.*)?$/;
+    const match = url.match(publicPattern);
+    return match ? match[1] : null;
+  };
+
   // Generate signed URLs for private bucket images
   useEffect(() => {
     const generateSignedUrls = async () => {
@@ -28,38 +37,41 @@ export const ProofImageGallery: React.FC<ProofImageGalleryProps> = ({ images }) 
 
       for (let i = 0; i < images.length; i++) {
         const imagePath = images[i];
+        let storagePath: string | null = null;
         
-        // Check if it's already a full URL (public bucket or external)
+        // Check if it's a full URL that references our proof-images bucket
         if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-          urls[i] = imagePath;
+          // Check if it's a Supabase storage URL for proof-images bucket
+          storagePath = extractStoragePath(imagePath);
+          
+          if (!storagePath) {
+            // It's an external URL or different bucket, use as-is
+            urls[i] = imagePath;
+            continue;
+          }
         } else {
-          // It's a storage path, generate signed URL for private bucket
-          try {
-            const { data, error } = await supabase.storage
-              .from('proof-images')
-              .createSignedUrl(imagePath, 3600); // 1 hour expiry
+          // It's a storage path
+          storagePath = imagePath.replace(/^proof-images\//, '');
+        }
+        
+        // Generate signed URL for the private bucket
+        try {
+          const { data, error } = await supabase.storage
+            .from('proof-images')
+            .createSignedUrl(storagePath, 3600); // 1 hour expiry
 
-            if (error) {
-              console.error('Error generating signed URL:', error);
-              // Try without the bucket prefix if path includes it
-              const cleanPath = imagePath.replace(/^proof-images\//, '');
-              const { data: retryData, error: retryError } = await supabase.storage
-                .from('proof-images')
-                .createSignedUrl(cleanPath, 3600);
-              
-              if (retryError) {
-                console.error('Retry error:', retryError);
-                urls[i] = imagePath; // Fallback to original
-              } else if (retryData?.signedUrl) {
-                urls[i] = retryData.signedUrl;
-              }
-            } else if (data?.signedUrl) {
-              urls[i] = data.signedUrl;
-            }
-          } catch (err) {
-            console.error('Failed to generate signed URL:', err);
+          if (error) {
+            console.error('Error generating signed URL for path:', storagePath, error);
+            // Fallback: try the original if path extraction failed
+            urls[i] = imagePath;
+          } else if (data?.signedUrl) {
+            urls[i] = data.signedUrl;
+          } else {
             urls[i] = imagePath;
           }
+        } catch (err) {
+          console.error('Failed to generate signed URL:', err);
+          urls[i] = imagePath;
         }
       }
 
