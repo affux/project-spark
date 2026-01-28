@@ -80,8 +80,8 @@ serve(async (req) => {
       throw new Error(`Failed to update wallet: ${updateError.message}`);
     }
 
-    // Record wallet transaction
-    const { error: txError } = await supabase
+    // Record wallet transaction - CRITICAL: This must succeed for proper accounting
+    const { data: txData, error: txError } = await supabase
       .from('wallet_transactions')
       .insert({
         user_id: user.id,
@@ -89,11 +89,24 @@ serve(async (req) => {
         type: 'order_payment',
         description: `Payment for order ${order.order_number}`,
         order_id: orderId
-      });
+      })
+      .select('id')
+      .single();
 
     if (txError) {
+      // If transaction record fails, we should rollback the wallet deduction
       console.error('Failed to record wallet transaction:', txError);
+      
+      // Rollback: Restore wallet balance
+      await supabase
+        .from('profiles')
+        .update({ wallet_balance: profile.wallet_balance })
+        .eq('user_id', user.id);
+      
+      throw new Error(`Failed to record transaction: ${txError.message}`);
     }
+    
+    console.log('Wallet transaction recorded:', txData?.id);
 
     // Update order status
     const { error: orderUpdateError } = await supabase
