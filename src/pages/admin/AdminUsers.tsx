@@ -106,7 +106,7 @@ const statusConfig: Record<UserStatus, { label: string; color: string; icon: Rea
 };
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'balance-asc' | 'balance-desc' | 'status';
-type FilterOption = 'all' | 'pending' | 'approved' | 'disabled' | 'with-dues' | 'kyc-pending';
+type FilterOption = 'all' | 'pending' | 'approved' | 'disabled' | 'with-dues' | 'kyc-pending' | 'kyc-completed';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -281,6 +281,9 @@ const AdminUsers: React.FC = () => {
         break;
       case 'kyc-pending':
         filtered = filtered.filter(u => kycStatusMap.get(u.user_id) === 'submitted');
+        break;
+      case 'kyc-completed':
+        filtered = filtered.filter(u => kycStatusMap.get(u.user_id) === 'approved');
         break;
     }
 
@@ -653,6 +656,12 @@ const AdminUsers: React.FC = () => {
                   <span className="flex items-center gap-2">
                     <Shield className="w-3 h-3 text-amber-500" />
                     KYC Pending
+                  </span>
+                </SelectItem>
+                <SelectItem value="kyc-completed">
+                  <span className="flex items-center gap-2">
+                    <Shield className="w-3 h-3 text-emerald-500" />
+                    KYC Completed
                   </span>
                 </SelectItem>
               </SelectContent>
