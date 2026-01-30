@@ -11,6 +11,7 @@ import DashboardMessageBanner from '@/components/dashboard/DashboardMessageBanne
 import { PostpaidDueReminder } from '@/components/user/PostpaidDueReminder';
 import { PostpaidSidePanel } from '@/components/user/PostpaidSidePanel';
 import { TutorialAchievements } from '@/components/user/TutorialAchievements';
+import { OnboardingCards } from '@/components/onboarding';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDashboard } from '@/hooks/useUserDashboard';
 import { usePlatformSettings, CURRENCY_SYMBOLS, VideoTutorial } from '@/hooks/usePlatformSettings';
@@ -249,6 +250,9 @@ const UserDashboard: React.FC = () => {
 
           {/* KYC Status Banner */}
           <KYCStatusBanner compact />
+
+          {/* Onboarding Cards */}
+          <OnboardingCards maxCards={3} />
 
           {/* Wallet & Store Banner */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

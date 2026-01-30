@@ -11,6 +11,7 @@ import { BlockingPopupMessage } from "@/components/popup/BlockingPopupMessage";
 import { DynamicHead } from "@/components/DynamicHead";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { initGlobalLinkTracking } from "@/hooks/useVisitorTracking";
+import { OnboardingProvider } from "@/components/onboarding";
 
 // Pages
 import Index from "./pages/Index";
@@ -85,6 +86,11 @@ const ProtectedRoute: React.FC<{
   
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+  
+  // Wrap user routes with OnboardingProvider
+  if (allowedRoles?.includes('user') && !allowedRoles?.includes('admin')) {
+    return <OnboardingProvider>{children}</OnboardingProvider>;
   }
   
   return <>{children}</>;
