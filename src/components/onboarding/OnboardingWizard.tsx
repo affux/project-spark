@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useOnboardingGuide, OnboardingCategory } from '@/hooks/useOnboardingGuide';
+import { useVoiceAssistance } from '@/hooks/useVoiceAssistance';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -19,9 +20,12 @@ import {
   Circle,
   Sparkles,
   Rocket,
-  X
+  X,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VoiceAssistanceToggle } from './VoiceAssistanceToggle';
 
 const iconMap: Record<string, React.ElementType> = {
   User,
@@ -42,12 +46,42 @@ export const OnboardingWizard: React.FC = () => {
     markStepCompleted,
   } = useOnboardingGuide();
   
+  const { 
+    isEnabled: voiceEnabled, 
+    speakStep, 
+    speakWelcome, 
+    stop: stopSpeaking 
+  } = useVoiceAssistance();
+  
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [hasSpokenWelcome, setHasSpokenWelcome] = useState(false);
 
   const currentCategory = categories[currentCategoryIndex];
   const currentStep = currentCategory?.steps[currentStepIndex];
   const IconComponent = iconMap[currentCategory?.icon] || Circle;
+
+  // Speak welcome message when wizard opens
+  useEffect(() => {
+    if (isWizardOpen && voiceEnabled && !hasSpokenWelcome) {
+      speakWelcome();
+      setHasSpokenWelcome(true);
+    }
+    if (!isWizardOpen) {
+      setHasSpokenWelcome(false);
+      stopSpeaking();
+    }
+  }, [isWizardOpen, voiceEnabled, hasSpokenWelcome, speakWelcome, stopSpeaking]);
+
+  // Speak current step when it changes
+  useEffect(() => {
+    if (isWizardOpen && currentStep && voiceEnabled && hasSpokenWelcome) {
+      const timer = setTimeout(() => {
+        speakStep(currentStep.title, currentStep.description);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isWizardOpen, currentStep, voiceEnabled, hasSpokenWelcome, speakStep]);
 
   const handleNext = () => {
     if (currentStepIndex < currentCategory.steps.length - 1) {
@@ -91,14 +125,16 @@ export const OnboardingWizard: React.FC = () => {
       <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
         {/* Header with gradient */}
         <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 pb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-4"
-            onClick={closeWizard}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="absolute right-4 top-4 flex items-center gap-2">
+            <VoiceAssistanceToggle size="sm" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={closeWizard}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
           
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
