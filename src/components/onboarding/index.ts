@@ -4,3 +4,4 @@ export { OnboardingTour } from './OnboardingTour';
 export { OnboardingSidebar } from './OnboardingSidebar';
 export { OnboardingCards } from './OnboardingCards';
 export { OnboardingFAB } from './OnboardingFAB';
+export { VoiceAssistanceToggle } from './VoiceAssistanceToggle';

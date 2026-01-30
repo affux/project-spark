@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOnboardingGuide } from '@/hooks/useOnboardingGuide';
+import { useVoiceAssistance } from '@/hooks/useVoiceAssistance';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,9 +10,12 @@ import {
   ChevronLeft, 
   X, 
   MapPin,
-  Sparkles
+  Sparkles,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { VoiceAssistanceToggle } from './VoiceAssistanceToggle';
 
 export const OnboardingTour: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +31,7 @@ export const OnboardingTour: React.FC = () => {
   } = useOnboardingGuide();
 
   const [position, setPosition] = useState({ top: 20, right: 20 });
+  const { isEnabled: voiceEnabled, speakStep, stop: stopSpeaking } = useVoiceAssistance();
 
   const incompleteSteps = allSteps.filter(s => !s.isCompleted);
   const currentStep = incompleteSteps[currentTourStep];
@@ -37,6 +42,20 @@ export const OnboardingTour: React.FC = () => {
       navigate(currentStep.route);
     }
   }, [isTourActive, currentStep, location.pathname, navigate]);
+
+  // Speak current step when it changes
+  useEffect(() => {
+    if (isTourActive && currentStep && voiceEnabled) {
+      speakStep(currentStep.title, currentStep.description);
+    }
+  }, [isTourActive, currentStep, voiceEnabled, speakStep]);
+
+  // Stop speaking when tour ends
+  useEffect(() => {
+    if (!isTourActive) {
+      stopSpeaking();
+    }
+  }, [isTourActive, stopSpeaking]);
 
   if (!isTourActive || !currentStep) return null;
 
@@ -63,6 +82,7 @@ export const OnboardingTour: React.FC = () => {
               <span className="text-sm font-medium">Guided Tour</span>
             </div>
             <div className="flex items-center gap-2">
+              <VoiceAssistanceToggle size="sm" className="h-6 w-6" />
               <Badge variant="outline" className="text-xs">
                 {currentTourStep + 1} / {incompleteSteps.length}
               </Badge>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOnboardingGuide } from '@/hooks/useOnboardingGuide';
+import { useVoiceAssistance } from '@/hooks/useVoiceAssistance';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,7 +17,9 @@ import {
   MapPin, 
   ListChecks,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +33,12 @@ export const OnboardingFAB: React.FC = () => {
     isTourActive,
     isSidebarOpen,
   } = useOnboardingGuide();
+
+  const {
+    isEnabled: voiceEnabled,
+    isSupported: voiceSupported,
+    toggleVoiceAssistance,
+  } = useVoiceAssistance();
 
   if (isTourActive) return null;
 
@@ -91,6 +100,25 @@ export const OnboardingFAB: React.FC = () => {
               </div>
             </div>
           </DropdownMenuItem>
+          
+          {voiceSupported && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleVoiceAssistance} className="gap-2 cursor-pointer">
+                {voiceEnabled ? (
+                  <Volume2 className="w-4 h-4 text-primary" />
+                ) : (
+                  <VolumeX className="w-4 h-4" />
+                )}
+                <div>
+                  <div className="font-medium">Voice Assistance</div>
+                  <div className="text-xs text-muted-foreground">
+                    {voiceEnabled ? 'Voice guidance is ON' : 'Turn on voice guidance'}
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            </>
+          )}
           
           <DropdownMenuSeparator />
           
