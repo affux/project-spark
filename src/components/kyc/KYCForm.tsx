@@ -30,7 +30,7 @@ const kycSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(50),
   last_name: z.string().min(1, 'Last name is required').max(50),
   date_of_birth: z.string().min(1, 'Date of birth is required'),
-  mobile_number: z.string().regex(mobileRegex, 'Mobile number must be 10 digits starting with 6-9').optional().or(z.literal('')),
+  mobile_number: z.string().min(1, 'Mobile number is required').regex(mobileRegex, 'Mobile number must be 10 digits starting with 6-9'),
   aadhaar_number: z.string().regex(aadhaarRegex, 'Aadhaar must be 12 digits'),
   pan_number: z.string().regex(panRegex, 'Invalid PAN format (e.g., ABCDE1234F)'),
 });
@@ -255,7 +255,7 @@ export const KYCForm: React.FC = () => {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mobile_number">Mobile Number (Optional)</Label>
+                <Label htmlFor="mobile_number">Mobile Number <span className="text-red-500">*</span></Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
                   <Input
