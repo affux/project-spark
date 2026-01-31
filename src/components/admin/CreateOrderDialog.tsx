@@ -18,10 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, Wand2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
+import { useRandomUserGenerator } from '@/hooks/useRandomUserGenerator';
 interface DropshipperUser {
   user_id: string;
   name: string;
@@ -66,10 +66,12 @@ export const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({
   isCreating,
 }) => {
   const { toast } = useToast();
+  const { generateRandomUser, isGenerating } = useRandomUserGenerator();
   const [dropshippers, setDropshippers] = useState<DropshipperUser[]>([]);
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [isLoadingDropshippers, setIsLoadingDropshippers] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [autoFillAnimation, setAutoFillAnimation] = useState(false);
 
   const [selectedDropshipper, setSelectedDropshipper] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -80,6 +82,28 @@ export const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({
     customer_address: '',
     quantity: 1,
   });
+
+  const handleAutoFill = () => {
+    const user = generateRandomUser();
+    setAutoFillAnimation(true);
+    
+    // Animate the fill
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        customer_name: user.name,
+        customer_email: user.email,
+        customer_phone: user.phone,
+        customer_address: user.address,
+      }));
+      setAutoFillAnimation(false);
+      
+      toast({
+        title: '✨ Auto-Filled!',
+        description: `Generated ${user.country} customer: ${user.name}`,
+      });
+    }, 300);
+  };
 
   // Fetch dropshippers on mount
   useEffect(() => {
@@ -326,7 +350,27 @@ export const CreateOrderDialog: React.FC<CreateOrderDialogProps> = ({
           </div>
 
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-4">Customer Information</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium">Customer Information</h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAutoFill}
+                disabled={isGenerating}
+                className={`gap-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 hover:border-purple-500/50 hover:from-purple-500/20 hover:to-pink-500/20 text-purple-600 dark:text-purple-400 transition-all duration-300 ${autoFillAnimation ? 'scale-105 shadow-lg shadow-purple-500/20' : ''}`}
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Wand2 className={`w-4 h-4 ${autoFillAnimation ? 'animate-pulse' : ''}`} />
+                )}
+                <span className="flex items-center gap-1">
+                  Magic Auto-Fill
+                  <Sparkles className="w-3 h-3" />
+                </span>
+              </Button>
+            </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
