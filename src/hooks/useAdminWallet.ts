@@ -113,50 +113,36 @@ export const useAdminWallet = () => {
       type: 'credit' | 'debit'; 
       description: string;
     }) => {
-      // Get current balance
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('user_id', userId)
-        .single();
-
-      if (profileError) throw profileError;
-
-      const currentBalance = Number(profile.wallet_balance);
+      // Use the edge function for wallet adjustments (bypasses protect_profile_fields trigger)
       const adjustedAmount = type === 'credit' ? amount : -amount;
-      const newBalance = currentBalance + adjustedAmount;
+      
+      const { data, error } = await supabase.functions.invoke('admin-wallet-credit', {
+        body: {
+          userId,
+          amount: adjustedAmount,
+          description,
+        },
+      });
 
-      if (newBalance < 0) {
-        throw new Error('Insufficient balance for debit');
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to adjust wallet');
       }
 
-      // Update balance
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ wallet_balance: newBalance })
-        .eq('user_id', userId);
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to adjust wallet balance');
+      }
 
-      if (updateError) throw updateError;
-
-      // Create transaction record using admin insert
-      const { error: txError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: userId,
-          amount: adjustedAmount,
-          type: type === 'credit' ? 'admin_credit' : 'admin_debit',
-          description,
-        });
-
-      if (txError) throw txError;
+      return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-wallet-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dropshipper-wallets'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dropshippers'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       toast({
         title: variables.type === 'credit' ? 'Wallet Credited' : 'Wallet Debited',
-        description: `$${variables.amount.toFixed(2)} has been ${variables.type}ed.`,
+        description: `$${variables.amount.toFixed(2)} has been ${variables.type}ed successfully.`,
       });
     },
     onError: (error: Error) => {
