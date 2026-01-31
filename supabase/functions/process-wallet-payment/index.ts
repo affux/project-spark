@@ -119,8 +119,8 @@ serve(async (req) => {
       );
     }
 
-    // Calculate new balance
-    const newBalance = currentBalance - amount;
+    // Calculate new balance with proper rounding to prevent floating-point issues
+    const newBalance = Math.round((currentBalance - amount) * 100) / 100;
     console.log('New balance after deduction:', newBalance);
 
     // Deduct from wallet
