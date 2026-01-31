@@ -58,7 +58,8 @@ serve(async (req) => {
       throw new Error('Profile not found');
     }
 
-    const newBalance = Number(profile.wallet_balance) + Number(amount);
+    // Round to 2 decimal places to prevent floating-point precision issues
+    const newBalance = Math.round((Number(profile.wallet_balance) + Number(amount)) * 100) / 100;
 
     // Update balance using service role (bypasses trigger)
     const { error: updateError } = await supabase
