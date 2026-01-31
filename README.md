@@ -1,4 +1,6 @@
-# Welcome to your Lovable project
+# AFFUX - Dropshipping Platform
+
+> Last updated: 2026-01-31
 
 ## Project info
 
