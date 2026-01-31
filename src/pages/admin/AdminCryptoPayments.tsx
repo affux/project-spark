@@ -69,6 +69,7 @@ const AdminCryptoPayments: React.FC = () => {
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [proofImageError, setProofImageError] = useState(false);
 
   // Count underpaid payments
   const underpaidCount = payments.filter(payment => {
@@ -375,6 +376,7 @@ const AdminCryptoPayments: React.FC = () => {
                                     className="h-8 gap-1 text-xs"
                                     onClick={() => {
                                       setSelectedPayment(payment);
+                                      setProofImageError(false);
                                       setProofDialogOpen(true);
                                     }}
                                   >
@@ -640,24 +642,32 @@ const AdminCryptoPayments: React.FC = () => {
               <div className="space-y-4">
                 {selectedPayment.payment_proof_url ? (
                   <div className="border rounded-lg overflow-hidden bg-muted/30">
-                    <img 
-                      src={selectedPayment.payment_proof_url} 
-                      alt="Payment proof" 
-                      className="w-full max-h-[70vh] object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.parentElement!.innerHTML = `
-                          <div class="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                            <p class="text-sm">Failed to load image</p>
-                            <a href="${selectedPayment.payment_proof_url}" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline mt-1">Open in new tab</a>
-                          </div>
-                        `;
-                      }}
-                    />
+                    {proofImageError ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
+                        <p className="text-sm">Failed to load image</p>
+                        {/* Safe URL rendering - validate protocol before rendering */}
+                        {selectedPayment.payment_proof_url && 
+                         (selectedPayment.payment_proof_url.startsWith('https://') || 
+                          selectedPayment.payment_proof_url.startsWith('http://')) && (
+                          <a 
+                            href={selectedPayment.payment_proof_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-xs text-primary hover:underline mt-1"
+                          >
+                            Open in new tab
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <img 
+                        src={selectedPayment.payment_proof_url} 
+                        alt="Payment proof" 
+                        className="w-full max-h-[70vh] object-contain"
+                        onError={() => setProofImageError(true)}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden bg-muted/30 flex flex-col items-center justify-center py-12 text-muted-foreground">
