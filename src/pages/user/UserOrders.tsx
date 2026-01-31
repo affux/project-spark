@@ -296,14 +296,28 @@ const UserOrders: React.FC = () => {
 
     setIsProcessing(true);
     try {
+      // Ensure we have a fresh session before making the call
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      console.log('Calling process-wallet-payment for order:', selectedOrder.id);
+      
       const { data, error } = await supabase.functions.invoke('process-wallet-payment', {
         body: { orderId: selectedOrder.id }
       });
 
-      if (error) throw error;
+      console.log('Wallet payment response:', { data, error });
+
+      if (error) {
+        console.error('Function invoke error:', error);
+        throw new Error(error.message || 'Payment failed');
+      }
       
-      if (!data.success) {
-        throw new Error(data.error || 'Payment failed');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Payment failed');
       }
 
       toast({
@@ -313,13 +327,17 @@ const UserOrders: React.FC = () => {
       });
       
       triggerPaymentConfetti();
+      
+      // Invalidate all related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['wallet-transactions'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['user-orders'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['user-dashboard'], exact: false });
+      
       // Refresh auth context to update wallet balance in UI immediately
       await refreshUser();
       refetchOrders();
+      
       setIsPayDialogOpen(false);
       setSelectedOrder(null);
     } catch (error: any) {
