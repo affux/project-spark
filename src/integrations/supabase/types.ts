@@ -2142,6 +2142,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_random_indian_name: { Args: never; Returns: string }
       get_user_commission_rate: { Args: { _user_id: string }; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
