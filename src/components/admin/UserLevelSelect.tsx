@@ -22,18 +22,29 @@ const levelConfig: Record<UserLevel, { label: string; color: string }> = {
   gold: { label: 'Gold', color: 'text-yellow-600' },
 };
 
+const defaultLevelConfig = { label: 'Unknown', color: 'text-gray-500' };
+
+const getLevelConfig = (level: UserLevel | undefined | null) => {
+  if (!level || !levelConfig[level]) {
+    return defaultLevelConfig;
+  }
+  return levelConfig[level];
+};
+
 export const UserLevelSelect: React.FC<UserLevelSelectProps> = ({
   value,
   onValueChange,
   disabled = false,
 }) => {
+  const config = getLevelConfig(value);
+  
   return (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+    <Select value={value || 'bronze'} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger className="w-32">
         <SelectValue>
-          <span className={`flex items-center gap-1 ${levelConfig[value].color}`}>
+          <span className={`flex items-center gap-1 ${config.color}`}>
             <Award className="w-3 h-3" />
-            {levelConfig[value].label}
+            {config.label}
           </span>
         </SelectValue>
       </SelectTrigger>

@@ -87,6 +87,12 @@ import { AdminResetPasswordDialog } from '@/components/admin/AdminResetPasswordD
 import { UserPaymentSettingsPanel } from '@/components/admin/UserPaymentSettingsPanel';
 import { BulkPaymentSettingsDialog } from '@/components/admin/BulkPaymentSettingsDialog';
 
+const defaultStatusConfig = { 
+  label: 'Unknown', 
+  color: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  icon: <Clock className="w-3 h-3" />
+};
+
 const statusConfig: Record<UserStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { 
     label: 'Pending', 
@@ -103,6 +109,14 @@ const statusConfig: Record<UserStatus, { label: string; color: string; icon: Rea
     color: 'bg-red-500/10 text-red-600 border-red-500/20',
     icon: <XCircle className="w-3 h-3" />
   },
+};
+
+// Helper to safely get status config
+const getStatusConfig = (status: UserStatus | undefined | null) => {
+  if (!status || !statusConfig[status]) {
+    return defaultStatusConfig;
+  }
+  return statusConfig[status];
 };
 
 type SortOption = 'name-asc' | 'name-desc' | 'date-asc' | 'date-desc' | 'balance-asc' | 'balance-desc' | 'status';
@@ -970,9 +984,9 @@ const AdminUsers: React.FC = () => {
 
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={cn("gap-1 border", statusConfig[user.user_status].color)}>
-                    {statusConfig[user.user_status].icon}
-                    {statusConfig[user.user_status].label}
+                  <Badge className={cn("gap-1 border", getStatusConfig(user.user_status).color)}>
+                    {getStatusConfig(user.user_status).icon}
+                    {getStatusConfig(user.user_status).label}
                   </Badge>
                   {/* KYC Status Badge */}
                   {(() => {

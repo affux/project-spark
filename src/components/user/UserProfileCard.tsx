@@ -44,6 +44,19 @@ const levelConfig: Record<UserLevel, { label: string; color: string; bgColor: st
   },
 };
 
+const defaultLevelConfig = { 
+  label: 'Unknown', 
+  color: 'text-gray-500', 
+  bgColor: 'bg-gradient-to-r from-gray-200 to-gray-300 border-gray-400'
+};
+
+const getLevelConfig = (level: UserLevel | undefined | null) => {
+  if (!level || !levelConfig[level]) {
+    return defaultLevelConfig;
+  }
+  return levelConfig[level];
+};
+
 const kycStatusConfig = {
   not_submitted: { label: 'Not Submitted', color: 'bg-muted text-muted-foreground', icon: Clock },
   submitted: { label: 'Pending Review', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
@@ -203,7 +216,7 @@ export const UserProfileCard: React.FC = () => {
     settingsMap.level_threshold_gold
   );
   
-  const levelInfo = levelConfig[userLevel];
+  const levelInfo = getLevelConfig(userLevel);
   const kycInfo = kycStatusConfig[kycStatus as keyof typeof kycStatusConfig] || kycStatusConfig.not_submitted;
   const KycIcon = kycInfo.icon;
 
