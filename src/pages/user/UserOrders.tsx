@@ -304,6 +304,8 @@ const UserOrders: React.FC = () => {
       }
 
       console.log('Calling process-wallet-payment for order:', selectedOrder.id);
+      console.log('Current wallet balance before payment:', walletBalance);
+      console.log('Order amount to deduct:', orderAmount);
       
       const { data, error } = await supabase.functions.invoke('process-wallet-payment', {
         body: { orderId: selectedOrder.id }
@@ -320,23 +322,30 @@ const UserOrders: React.FC = () => {
         throw new Error(data?.error || 'Payment failed');
       }
 
+      // Log the new balance from response
+      console.log('New wallet balance after payment:', data.newBalance);
+      console.log('Amount deducted:', data.amount);
+
       toast({
         title: '🎉 Payment Successful!',
-        description: `$${orderAmount.toFixed(2)} has been deducted from your wallet for order ${selectedOrder.order_number}.`,
+        description: `$${orderAmount.toFixed(2)} has been deducted from your wallet. New balance: $${data.newBalance?.toFixed(2) || 'N/A'}`,
         className: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
       });
       
       triggerPaymentConfetti();
       
-      // Invalidate all related queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['user-orders'], exact: false });
-      queryClient.invalidateQueries({ queryKey: ['user-dashboard'], exact: false });
+      // Invalidate ALL related queries to force fresh data fetch
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+      await queryClient.invalidateQueries({ queryKey: ['user-dashboard'] });
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
       
       // Refresh auth context to update wallet balance in UI immediately
       await refreshUser();
-      refetchOrders();
+      
+      // Force refetch orders
+      await refetchOrders();
       
       setIsPayDialogOpen(false);
       setSelectedOrder(null);
