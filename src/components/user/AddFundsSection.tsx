@@ -69,7 +69,7 @@ const paymentMethods: PaymentMethod[] = [
 export const AddFundsSection: React.FC = () => {
   const { settings } = usePlatformSettings();
   const { postpaidStatus } = usePostpaid();
-  const { settings: userPaymentSettings } = useMyPaymentSettings();
+  const { settings: userPaymentSettings, hasCustomSettings } = useMyPaymentSettings();
   const { toast } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
   const [copiedUpiId, setCopiedUpiId] = useState(false);
@@ -102,7 +102,7 @@ export const AddFundsSection: React.FC = () => {
     }
   };
 
-  // Per-user payment method settings (default all true if not set)
+  // Per-user payment method settings - only apply if admin has manually configured them
   const userMethodsEnabled = userPaymentSettings?.enabled_methods || {
     upi: true,
     wallet: true,
@@ -117,7 +117,8 @@ export const AddFundsSection: React.FC = () => {
       
       // Map method id to user settings key
       const userSettingsKey = method.id === 'bank' ? 'bank_transfer' : method.id;
-      const userEnabled = userMethodsEnabled[userSettingsKey as keyof typeof userMethodsEnabled] !== false;
+      // Only apply user restrictions if admin has manually set custom settings for this user
+      const userEnabled = !hasCustomSettings || userMethodsEnabled[userSettingsKey as keyof typeof userMethodsEnabled] !== false;
       
       // For usd_wallet, also check postpaidStatus
       let enabled = globalEnabled && userEnabled;
@@ -131,7 +132,7 @@ export const AddFundsSection: React.FC = () => {
         message: getRawValue(method.messageKey) || `${method.name} is not available.`,
       };
     });
-  }, [settings, postpaidStatus?.walletPaymentEnabled, userMethodsEnabled]);
+  }, [settings, postpaidStatus?.walletPaymentEnabled, userMethodsEnabled, hasCustomSettings]);
 
   const selectedConfig = useMemo(() => {
     return methodsConfig.find(m => m.id === selectedMethod);

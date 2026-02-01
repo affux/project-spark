@@ -70,7 +70,7 @@ const UserOrders: React.FC = () => {
   const { postpaidStatus } = usePostpaid();
   
   // Get per-user payment settings
-  const { settings: userPaymentSettings } = useMyPaymentSettings();
+  const { settings: userPaymentSettings, hasCustomSettings } = useMyPaymentSettings();
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -104,7 +104,7 @@ const UserOrders: React.FC = () => {
   // Check if wallet balance payment is enabled by admin (default to true for backward compatibility)
   const isWalletBalanceEnabled = settingsMap.payment_method_wallet_balance_enabled !== false;
   
-  // Per-user payment method checks (default all true if not set)
+  // Per-user payment method checks - only apply restrictions if admin has manually set them
   const userMethodsEnabled = userPaymentSettings?.enabled_methods || {
     upi: true,
     wallet: true,
@@ -112,10 +112,10 @@ const UserOrders: React.FC = () => {
     usd_wallet: true,
   };
 
-  // Get enabled payment methods - check both global AND per-user settings
+  // Get enabled payment methods - check global settings AND per-user settings (only if admin has set them)
   const enabledPaymentMethods = [
-    // Wallet balance - enabled if global ON + per-user ON
-    ...(isWalletBalanceEnabled && userMethodsEnabled.wallet ? [{ 
+    // Wallet balance - enabled if global ON + (no custom settings OR per-user ON)
+    ...(isWalletBalanceEnabled && (!hasCustomSettings || userMethodsEnabled.wallet) ? [{ 
       id: 'wallet_balance', 
       name: 'Wallet Balance', 
       icon: Wallet, 
@@ -136,8 +136,8 @@ const UserOrders: React.FC = () => {
       isWalletBalance: false,
       isPostpaid: true,
     }] : []),
-    // UPI - enabled if global ON + per-user ON
-    ...(settingsMap.payment_method_upi_enabled && userMethodsEnabled.upi ? [{ 
+    // UPI - enabled if global ON + (no custom settings OR per-user ON)
+    ...(settingsMap.payment_method_upi_enabled && (!hasCustomSettings || userMethodsEnabled.upi) ? [{ 
       id: 'upi', 
       name: 'UPI', 
       icon: Smartphone, 
@@ -147,8 +147,8 @@ const UserOrders: React.FC = () => {
       isWalletBalance: false, 
       isPostpaid: false 
     }] : []),
-    // Bank Transfer - enabled if global ON + per-user ON
-    ...(settingsMap.payment_method_bank_enabled && userMethodsEnabled.bank_transfer ? [{ 
+    // Bank Transfer - enabled if global ON + (no custom settings OR per-user ON)
+    ...(settingsMap.payment_method_bank_enabled && (!hasCustomSettings || userMethodsEnabled.bank_transfer) ? [{ 
       id: 'bank', 
       name: 'Bank Transfer', 
       icon: Building, 
@@ -158,11 +158,11 @@ const UserOrders: React.FC = () => {
       isWalletBalance: false, 
       isPostpaid: false 
     }] : []),
-    // USDT Wallet - check global + per-user + user-specific walletPaymentEnabled
-    ...(settingsMap.payment_method_usd_wallet_enabled && userMethodsEnabled.usd_wallet && (postpaidStatus?.walletPaymentEnabled !== false) ? [{ 
+    // USDT Wallet - check global + (no custom settings OR per-user ON) + user-specific walletPaymentEnabled
+    ...(settingsMap.payment_method_usd_wallet_enabled && (!hasCustomSettings || userMethodsEnabled.usd_wallet) && (postpaidStatus?.walletPaymentEnabled !== false) ? [{ 
       id: 'usd_wallet', 
       name: 'USDT Wallet', 
-      icon: Wallet, 
+      icon: Wallet,
       customIcon: <USDTIcon size={20} />, 
       enabled: true, 
       message: settingsMap.payment_method_usd_wallet_message, 
