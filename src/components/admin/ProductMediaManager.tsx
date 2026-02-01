@@ -468,17 +468,41 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
   const handleAddUrl = async () => {
     if (!urlInput.trim()) return;
 
-    try {
-      await addMedia({
-        product_id: productId,
-        media_type: urlType,
-        url: urlInput.trim(),
-      });
-      setUrlInput('');
-      setShowUrlInput(false);
-    } catch (error) {
-      console.error('Error adding URL:', error);
+    // Split by newlines or commas to support multiple URLs
+    const urls = urlInput
+      .split(/[\n,]+/)
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+
+    if (urls.length === 0) return;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const url of urls) {
+      try {
+        await addMedia({
+          product_id: productId,
+          media_type: urlType,
+          url: url,
+        });
+        successCount++;
+      } catch (error) {
+        console.error('Error adding URL:', error);
+        failCount++;
+      }
     }
+
+    if (urls.length > 1) {
+      toast({
+        title: failCount === 0 ? 'URLs Added' : 'Partially Added',
+        description: `Added ${successCount} of ${urls.length} ${urlType}s.`,
+        variant: failCount > 0 ? 'destructive' : 'default',
+      });
+    }
+
+    setUrlInput('');
+    setShowUrlInput(false);
   };
 
   if (isLoading) {
@@ -676,33 +700,39 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
               {showUrlInput && (
                 <div className="flex gap-2 p-3 bg-muted/50 rounded-lg">
                   <div className="flex-1 space-y-2">
-                    <Input
-                      placeholder="Enter image or video URL..."
+                    <textarea
+                      placeholder="Enter image or video URLs (one per line or comma-separated)..."
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
-                      className="text-sm"
+                      className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                      rows={3}
                     />
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={urlType === 'image' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setUrlType('image')}
-                        className="h-7 text-xs"
-                      >
-                        <Image className="w-3 h-3 mr-1" />
-                        Image
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={urlType === 'video' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setUrlType('video')}
-                        className="h-7 text-xs"
-                      >
-                        <Video className="w-3 h-3 mr-1" />
-                        Video
-                      </Button>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={urlType === 'image' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUrlType('image')}
+                          className="h-7 text-xs"
+                        >
+                          <Image className="w-3 h-3 mr-1" />
+                          Image
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={urlType === 'video' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUrlType('video')}
+                          className="h-7 text-xs"
+                        >
+                          <Video className="w-3 h-3 mr-1" />
+                          Video
+                        </Button>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {urlInput.split(/[\n,]+/).filter(u => u.trim()).length} URL(s)
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
