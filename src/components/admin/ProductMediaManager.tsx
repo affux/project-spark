@@ -663,9 +663,9 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
                           item={item}
                           onDelete={deleteMedia}
                           isDeleting={isDeletingMedia}
-                          onCopyToPrimary={item.media_type === 'image' ? handleCopyToPrimary : undefined}
+                          onCopyToPrimary={item.media_type !== 'video' ? handleCopyToPrimary : undefined}
                           isCopying={isSettingPrimary}
-                          isPrimary={primaryImageUrl === item.url}
+                          isPrimary={primaryImageUrl !== null && item.url === primaryImageUrl}
                         />
                       ))}
                     </div>
