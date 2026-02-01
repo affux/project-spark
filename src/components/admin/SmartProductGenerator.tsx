@@ -28,7 +28,10 @@ import {
   Package,
   Check,
   RefreshCw,
-  ImageIcon
+  ImageIcon,
+  Minus,
+  Plus,
+  Layers
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -96,6 +99,7 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
     category: '',
     minPrice: '29.99',
     maxPrice: '299.99',
+    quantity: 1,
   });
 
   const handleGenerate = async () => {
@@ -211,6 +215,7 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
         category: '',
         minPrice: '29.99',
         maxPrice: '299.99',
+        quantity: 1,
       });
       onOpenChange(false);
       onProductCreated?.();
@@ -331,6 +336,56 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
                 </p>
               </div>
 
+              {/* Quantity Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Layers className="w-4 h-4" />
+                  Number of Products
+                </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setConfig(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+                      disabled={config.quantity <= 1}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span className="w-12 text-center font-semibold text-lg">{config.quantity}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setConfig(prev => ({ ...prev, quantity: Math.min(10, prev.quantity + 1) }))}
+                      disabled={config.quantity >= 10}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    {[1, 3, 5, 10].map((num) => (
+                      <Button
+                        key={num}
+                        type="button"
+                        variant={config.quantity === num ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setConfig(prev => ({ ...prev, quantity: num }))}
+                        className="h-8 px-3"
+                      >
+                        {num}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Generate up to 10 unique products at once
+                </p>
+              </div>
+
               {/* Info Box */}
               <div className="p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20">
                 <div className="flex gap-3">
@@ -362,7 +417,7 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4" />
-                    Generate Product
+                    Generate {config.quantity > 1 ? `${config.quantity} Products` : 'Product'}
                   </>
                 )}
               </Button>
