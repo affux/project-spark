@@ -223,14 +223,19 @@ const UserPayments: React.FC = () => {
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   
   // Get available payment methods based on admin settings and user-specific payment settings
-  // For crypto/USDT payouts, check user_payment_settings.enabled_methods.usd_wallet
-  const userUsdtEnabled = myPaymentSettings?.enabled_methods?.usd_wallet !== false;
+  // Check both global platform settings AND user-specific payment settings for each method
+  const userEnabledMethods = myPaymentSettings?.enabled_methods ?? {
+    upi: true,
+    wallet: true,
+    bank_transfer: true,
+    usd_wallet: true,
+  };
   const availablePaymentMethods = [
-    { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer },
-    { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi },
+    { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer && userEnabledMethods.bank_transfer !== false },
+    { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi && userEnabledMethods.upi !== false },
     { value: 'paypal', label: 'PayPal', enabled: payoutMethodsEnabled.paypal },
     // USDT Wallet - check global setting AND user-specific payment settings
-    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && userUsdtEnabled },
+    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && userEnabledMethods.usd_wallet !== false },
   ].filter(m => m.enabled);
 
   // Set default payment method when dialog opens
