@@ -15,8 +15,10 @@ import {
   Loader2,
   DollarSign,
   Images,
-  Upload
+  Upload,
+  Wand2
 } from 'lucide-react';
+import { SmartProductGenerator } from '@/components/admin/SmartProductGenerator';
 import {
   Dialog,
   DialogContent,
@@ -61,6 +63,7 @@ const AdminProducts: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   const [addForm, setAddForm] = useState({
@@ -241,10 +244,18 @@ const AdminProducts: React.FC = () => {
               Manage your product catalog. {products.length} products total.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              className="gap-2 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-500/30 hover:border-violet-500/50 hover:bg-violet-500/20"
+              onClick={() => setIsGeneratorOpen(true)}
+            >
+              <Wand2 className="w-4 h-4 text-violet-500" />
+              <span className="hidden sm:inline">AI Generator</span>
+            </Button>
             <Button variant="outline" className="gap-2" onClick={() => setIsBulkImportOpen(true)}>
               <Upload className="w-4 h-4" />
-              Bulk Import
+              <span className="hidden sm:inline">Bulk Import</span>
             </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
@@ -673,6 +684,12 @@ const AdminProducts: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Smart Product Generator */}
+        <SmartProductGenerator 
+          open={isGeneratorOpen}
+          onOpenChange={setIsGeneratorOpen}
+        />
       </div>
     </DashboardLayout>
   );
