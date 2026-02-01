@@ -46,6 +46,7 @@ interface GeneratedProduct {
   price: number;
   sku: string;
   imageBase64: string | null;
+  galleryImages?: string[];
 }
 
 const BRANDS = [
@@ -100,7 +101,9 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
     minPrice: '29.99',
     maxPrice: '299.99',
     quantity: 1,
+    galleryCount: 1,
   });
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(0);
 
   const handleGenerate = async () => {
     if (!config.brand || !config.category) {
@@ -133,12 +136,14 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
           category: config.category,
           minPrice,
           maxPrice,
+          galleryCount: config.galleryCount,
         },
       });
 
       if (error) throw error;
 
       setGeneratedProduct(data);
+      setSelectedGalleryImage(0);
       setStep('preview');
 
       toast({
@@ -161,36 +166,44 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
     if (!generatedProduct) return;
 
     try {
-      // Upload image if we have one
-      let imageUrl: string | null = null;
+      // Upload all gallery images
+      const uploadedUrls: string[] = [];
+      const galleryImages = generatedProduct.galleryImages || [];
       
-      if (generatedProduct.imageBase64) {
-        // Convert base64 to blob
-        const base64Data = generatedProduct.imageBase64.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/png' });
+      for (let i = 0; i < galleryImages.length; i++) {
+        const imageBase64 = galleryImages[i];
+        if (!imageBase64) continue;
+        
+        try {
+          const base64Data = imageBase64.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let j = 0; j < byteCharacters.length; j++) {
+            byteNumbers[j] = byteCharacters.charCodeAt(j);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
 
-        // Upload to storage
-        const fileName = `generated-${Date.now()}.png`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('product-images')
-          .upload(fileName, blob, {
-            contentType: 'image/png',
-            upsert: false,
-          });
-
-        if (!uploadError && uploadData) {
-          const { data: urlData } = supabase.storage
+          const fileName = `generated-${Date.now()}-${i}.png`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
             .from('product-images')
-            .getPublicUrl(uploadData.path);
-          imageUrl = urlData.publicUrl;
+            .upload(fileName, blob, {
+              contentType: 'image/png',
+              upsert: false,
+            });
+
+          if (!uploadError && uploadData) {
+            const { data: urlData } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(uploadData.path);
+            uploadedUrls.push(urlData.publicUrl);
+          }
+        } catch (imgError) {
+          console.error('Error uploading image', i, imgError);
         }
       }
+
+      const mainImageUrl = uploadedUrls[0] || null;
 
       await addProduct({
         name: generatedProduct.name,
@@ -199,8 +212,10 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
         category: generatedProduct.category,
         base_price: generatedProduct.price,
         stock: Math.floor(Math.random() * 100) + 10,
-        image_url: imageUrl,
+        image_url: mainImageUrl,
       });
+      
+      // TODO: Add additional gallery images to product_media table if needed
 
       toast({
         title: '🎉 Product Saved!',
@@ -210,12 +225,14 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
       // Reset and close
       setStep('configure');
       setGeneratedProduct(null);
+      setSelectedGalleryImage(0);
       setConfig({
         brand: '',
         category: '',
         minPrice: '29.99',
         maxPrice: '299.99',
         quantity: 1,
+        galleryCount: 1,
       });
       onOpenChange(false);
       onProductCreated?.();
@@ -232,6 +249,7 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
   const handleRegenerate = () => {
     setStep('configure');
     setGeneratedProduct(null);
+    setSelectedGalleryImage(0);
   };
 
   const handleClose = () => {
@@ -386,6 +404,31 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
                 </p>
               </div>
 
+              {/* Gallery Images Count */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Gallery Images per Product
+                </Label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4].map((num) => (
+                    <Button
+                      key={num}
+                      type="button"
+                      variant={config.galleryCount === num ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setConfig(prev => ({ ...prev, galleryCount: num }))}
+                      className="h-9 w-12"
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  More images = longer generation time but richer product gallery
+                </p>
+              </div>
+
               {/* Info Box */}
               <div className="p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20">
                 <div className="flex gap-3">
@@ -442,19 +485,57 @@ export const SmartProductGenerator: React.FC<SmartProductGeneratorProps> = ({
             <ScrollArea className="max-h-[60vh] pr-4">
               {generatedProduct && (
                 <div className="space-y-6 py-4">
-                  {/* Image Preview */}
-                  <div className="aspect-video rounded-xl overflow-hidden bg-muted/50 border">
-                    {generatedProduct.imageBase64 ? (
-                      <img
-                        src={generatedProduct.imageBase64}
-                        alt={generatedProduct.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <ImageIcon className="w-12 h-12" />
-                        <span className="text-sm">Image generation in progress...</span>
+                  {/* Main Image Preview */}
+                  <div className="space-y-3">
+                    <div className="aspect-video rounded-xl overflow-hidden bg-muted/50 border">
+                      {generatedProduct.galleryImages && generatedProduct.galleryImages[selectedGalleryImage] ? (
+                        <img
+                          src={generatedProduct.galleryImages[selectedGalleryImage]}
+                          alt={`${generatedProduct.name} - Image ${selectedGalleryImage + 1}`}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : generatedProduct.imageBase64 ? (
+                        <img
+                          src={generatedProduct.imageBase64}
+                          alt={generatedProduct.name}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <ImageIcon className="w-12 h-12" />
+                          <span className="text-sm">Image generation in progress...</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Gallery Thumbnails */}
+                    {generatedProduct.galleryImages && generatedProduct.galleryImages.length > 1 && (
+                      <div className="flex gap-2 justify-center">
+                        {generatedProduct.galleryImages.map((img, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setSelectedGalleryImage(index)}
+                            className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                              selectedGalleryImage === index 
+                                ? 'border-primary ring-2 ring-primary/20' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <img
+                              src={img}
+                              alt={`Thumbnail ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
                       </div>
+                    )}
+                    
+                    {generatedProduct.galleryImages && generatedProduct.galleryImages.length > 0 && (
+                      <p className="text-xs text-center text-muted-foreground">
+                        {generatedProduct.galleryImages.length} gallery image{generatedProduct.galleryImages.length > 1 ? 's' : ''} generated
+                      </p>
                     )}
                   </div>
 

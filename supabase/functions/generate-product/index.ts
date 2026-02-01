@@ -10,6 +10,36 @@ interface GenerateProductRequest {
   category: string;
   minPrice: number;
   maxPrice: number;
+  galleryCount?: number;
+}
+
+async function generateImage(apiKey: string, prompt: string): Promise<string | null> {
+  try {
+    const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image',
+        messages: [{ role: 'user', content: prompt }],
+        modalities: ['image', 'text'],
+      }),
+    });
+
+    if (imageResponse.ok) {
+      const imageData = await imageResponse.json();
+      const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (imageUrl && imageUrl.startsWith('data:image')) {
+        return imageUrl;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error('Image generation error:', e);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -18,7 +48,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { brand, category, minPrice, maxPrice }: GenerateProductRequest = await req.json();
+    const { brand, category, minPrice, maxPrice, galleryCount = 1 }: GenerateProductRequest = await req.json();
 
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
@@ -40,7 +70,12 @@ Return a JSON object with these exact fields:
   "name": "A creative, realistic product name in ${brand}'s naming style (e.g., for Nike: 'Air Velocity Pro', for Apple: 'AirPods Studio Max')",
   "description": "A compelling 2-3 paragraph SEO-friendly description including: key features, materials/specs, use cases, and brand tone. Make it persuasive and trustworthy.",
   "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"],
-  "imagePrompt": "A detailed prompt for generating a professional e-commerce product image with clean white background, studio lighting, showing the product from a flattering angle"
+  "imagePrompts": [
+    "Front view product shot with clean white background",
+    "Side angle showing product details",
+    "Lifestyle shot showing product in use",
+    "Close-up detail shot of key features"
+  ]
 }
 
 The description should:
@@ -62,12 +97,7 @@ Return ONLY valid JSON, no other text.`;
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+        messages: [{ role: 'user', content: prompt }],
         temperature: 0.8,
       }),
     });
@@ -88,7 +118,6 @@ Return ONLY valid JSON, no other text.`;
     // Parse JSON from response
     let productData;
     try {
-      // Clean the response - remove markdown code blocks if present
       let cleanContent = content.trim();
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.slice(7);
@@ -104,39 +133,35 @@ Return ONLY valid JSON, no other text.`;
       throw new Error('Failed to parse product data');
     }
 
-    // Now generate the product image
-    console.log('Generating product image...');
+    // Generate gallery images
+    const numImages = Math.min(galleryCount, 4); // Cap at 4 images
+    const galleryImages: string[] = [];
     
-    const imagePrompt = `Professional e-commerce product photo of a ${brand} ${category} product: ${productData.name}. ${productData.imagePrompt || 'Clean white background, studio lighting, high-end commercial photography style, 4K quality, no text or logos.'}`;
+    const imagePromptVariations = [
+      `Professional e-commerce hero photo of ${brand} ${productData.name}. Clean white background, studio lighting, front view, high-end commercial photography, 4K quality, no text.`,
+      `Professional product photo of ${brand} ${productData.name} from a 45-degree angle. Clean white background, soft shadows, studio lighting, showing product depth and design details.`,
+      `Lifestyle product photography of ${brand} ${productData.name} in a modern setting. Premium aesthetic, natural lighting, product in context of use.`,
+      `Close-up detail shot of ${brand} ${productData.name}. Macro photography showing textures, materials, and craftsmanship. Studio lighting, shallow depth of field.`,
+    ];
 
-    const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
-        messages: [
-          {
-            role: 'user',
-            content: imagePrompt,
-          },
-        ],
-        modalities: ['image', 'text'],
-      }),
-    });
+    console.log(`Generating ${numImages} gallery images...`);
 
-    let imageBase64 = null;
-    if (imageResponse.ok) {
-      const imageData = await imageResponse.json();
-      const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (imageUrl && imageUrl.startsWith('data:image')) {
-        imageBase64 = imageUrl;
-      }
-    } else {
-      console.warn('Image generation failed, continuing without image');
+    // Generate images in parallel for speed
+    const imagePromises = [];
+    for (let i = 0; i < numImages; i++) {
+      const customPrompt = productData.imagePrompts?.[i] || imagePromptVariations[i];
+      const fullPrompt = `${customPrompt} Product: ${brand} ${category} - ${productData.name}. No text, logos, or watermarks.`;
+      imagePromises.push(generateImage(apiKey, fullPrompt));
     }
+
+    const imageResults = await Promise.all(imagePromises);
+    for (const img of imageResults) {
+      if (img) {
+        galleryImages.push(img);
+      }
+    }
+
+    console.log(`Successfully generated ${galleryImages.length} images`);
 
     const result = {
       name: productData.name,
@@ -146,7 +171,8 @@ Return ONLY valid JSON, no other text.`;
       category,
       price,
       sku,
-      imageBase64,
+      imageBase64: galleryImages[0] || null, // Main image
+      galleryImages, // All gallery images
     };
 
     console.log('Product generated successfully:', result.name);
