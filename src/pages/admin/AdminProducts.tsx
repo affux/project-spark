@@ -17,7 +17,8 @@ import {
   Images,
   Upload,
   Wand2,
-  BookOpen
+  BookOpen,
+  Shuffle
 } from 'lucide-react';
 import { SmartProductGenerator } from '@/components/admin/SmartProductGenerator';
 import { CreateCatalogDialog } from '@/components/admin/CreateCatalogDialog';
@@ -354,13 +355,29 @@ const AdminProducts: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="sku">SKU</Label>
-                      <Input 
-                        id="sku" 
-                        value={addForm.sku}
-                        onChange={(e) => setAddForm(prev => ({ ...prev, sku: e.target.value }))}
-                        placeholder="PRD-001" 
-                        required
-                      />
+                      <div className="relative">
+                        <Input 
+                          id="sku" 
+                          value={addForm.sku}
+                          onChange={(e) => setAddForm(prev => ({ ...prev, sku: e.target.value }))}
+                          placeholder="PRD-001" 
+                          className="pr-10"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-primary hover:text-primary/80"
+                          onClick={() => {
+                            const randomSku = `SKU${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+                            setAddForm(prev => ({ ...prev, sku: randomSku }));
+                          }}
+                          title="Generate random SKU"
+                        >
+                          <Shuffle className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="category">Category</Label>
