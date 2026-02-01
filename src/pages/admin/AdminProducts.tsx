@@ -16,9 +16,11 @@ import {
   DollarSign,
   Images,
   Upload,
-  Wand2
+  Wand2,
+  BookOpen
 } from 'lucide-react';
 import { SmartProductGenerator } from '@/components/admin/SmartProductGenerator';
+import { CreateCatalogDialog } from '@/components/admin/CreateCatalogDialog';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +66,7 @@ const AdminProducts: React.FC = () => {
   const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   const [addForm, setAddForm] = useState({
@@ -252,6 +255,14 @@ const AdminProducts: React.FC = () => {
             >
               <Wand2 className="w-4 h-4 text-violet-500" />
               <span className="hidden sm:inline">AI Generator</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/20"
+              onClick={() => setIsCatalogOpen(true)}
+            >
+              <BookOpen className="w-4 h-4 text-emerald-500" />
+              <span className="hidden sm:inline">Create Catalog</span>
             </Button>
             <Button variant="outline" className="gap-2" onClick={() => setIsBulkImportOpen(true)}>
               <Upload className="w-4 h-4" />
@@ -689,6 +700,12 @@ const AdminProducts: React.FC = () => {
         <SmartProductGenerator 
           open={isGeneratorOpen}
           onOpenChange={setIsGeneratorOpen}
+        />
+
+        {/* Create Catalog Dialog */}
+        <CreateCatalogDialog
+          open={isCatalogOpen}
+          onOpenChange={setIsCatalogOpen}
         />
       </div>
     </DashboardLayout>
