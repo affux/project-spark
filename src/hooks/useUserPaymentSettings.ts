@@ -146,7 +146,7 @@ export const useUserPaymentSettings = (userId?: string) => {
 
 // Hook for user to check their own payment methods
 export const useMyPaymentSettings = () => {
-  const { data: settings, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['my-payment-settings'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -160,22 +160,33 @@ export const useMyPaymentSettings = () => {
       
       if (error) throw error;
       
-      // Return default (all enabled) if no custom settings
+      // Return null settings with hasCustomSettings=false if no custom settings exist
+      // This tells the UI to follow global settings only
       if (!data) {
         return {
-          enabled_methods: defaultEnabledMethods,
-          custom_upi_id: null,
-          custom_upi_qr_url: null,
+          settings: {
+            enabled_methods: defaultEnabledMethods,
+            custom_upi_id: null,
+            custom_upi_qr_url: null,
+          },
+          hasCustomSettings: false, // Admin hasn't manually set this user's settings
         };
       }
       
       // Parse enabled_methods safely from JSON
       return {
-        ...data,
-        enabled_methods: parseEnabledMethods(data.enabled_methods),
-      } as UserPaymentSettings;
+        settings: {
+          ...data,
+          enabled_methods: parseEnabledMethods(data.enabled_methods),
+        } as UserPaymentSettings,
+        hasCustomSettings: true, // Admin has manually configured this user's settings
+      };
     },
   });
 
-  return { settings, isLoading };
+  return { 
+    settings: data?.settings ?? null, 
+    hasCustomSettings: data?.hasCustomSettings ?? false,
+    isLoading 
+  };
 };

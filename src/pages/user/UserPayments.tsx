@@ -170,7 +170,7 @@ const UserPayments: React.FC = () => {
   const { settings: publicSettings, isLoading: isLoadingPublicSettings } = usePublicSettings();
   const { isKYCApproved } = useKYC();
   const { postpaidStatus } = usePostpaid();
-  const { settings: myPaymentSettings } = useMyPaymentSettings();
+  const { settings: myPaymentSettings, hasCustomSettings } = useMyPaymentSettings();
   const queryClient = useQueryClient();
 
   // Pull to refresh handler
@@ -223,7 +223,8 @@ const UserPayments: React.FC = () => {
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
   
   // Get available payment methods based on admin settings and user-specific payment settings
-  // Check both global platform settings AND user-specific payment settings for each method
+  // Only apply user-specific restrictions if admin has manually configured this user's settings
+  // Otherwise, follow global settings only
   const userEnabledMethods = myPaymentSettings?.enabled_methods ?? {
     upi: true,
     wallet: true,
@@ -231,11 +232,11 @@ const UserPayments: React.FC = () => {
     usd_wallet: true,
   };
   const availablePaymentMethods = [
-    { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer && userEnabledMethods.bank_transfer !== false },
-    { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi && userEnabledMethods.upi !== false },
+    { value: 'bank_transfer', label: 'Bank Transfer', enabled: payoutMethodsEnabled.bank_transfer && (!hasCustomSettings || userEnabledMethods.bank_transfer !== false) },
+    { value: 'upi', label: 'UPI', enabled: payoutMethodsEnabled.upi && (!hasCustomSettings || userEnabledMethods.upi !== false) },
     { value: 'paypal', label: 'PayPal', enabled: payoutMethodsEnabled.paypal },
-    // USDT Wallet - check global setting AND user-specific payment settings
-    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && userEnabledMethods.usd_wallet !== false },
+    // USDT Wallet - check global setting AND user-specific payment settings (only if admin has set them)
+    { value: 'crypto', label: 'USDT Wallet', enabled: payoutMethodsEnabled.crypto && (!hasCustomSettings || userEnabledMethods.usd_wallet !== false) },
   ].filter(m => m.enabled);
 
   // Set default payment method when dialog opens
