@@ -47,6 +47,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -357,12 +364,21 @@ const AdminProducts: React.FC = () => {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="category">Category</Label>
-                      <Input 
-                        id="category" 
+                      <Select
                         value={addForm.category}
-                        onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                        placeholder="Electronics" 
-                      />
+                        onValueChange={(value) => setAddForm(prev => ({ ...prev, category: value }))}
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat as string}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
@@ -616,11 +632,21 @@ const AdminProducts: React.FC = () => {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="edit-category">Category</Label>
-                    <Input 
-                      id="edit-category" 
+                    <Select
                       value={editForm.category}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                    />
+                      onValueChange={(value) => setEditForm(prev => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat as string}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <Button 
