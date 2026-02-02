@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useAdminIPLogs } from '@/hooks/useAdminIPLogs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,12 +9,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Search, RefreshCw, Globe, MapPin } from 'lucide-react';
+import { CalendarIcon, Search, RefreshCw, Globe, MapPin, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface IPLogViewerProps {
   userId?: string;
   showUserColumn?: boolean;
+  showUserSelector?: boolean;
+}
+
+interface UserOption {
+  user_id: string;
+  name: string;
+  email: string;
 }
 
 const actionTypeLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -29,18 +40,60 @@ const actionTypeLabels: Record<string, { label: string; variant: 'default' | 'se
   kyc_submission: { label: 'KYC Submission', variant: 'default' },
 };
 
-export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn = true }) => {
+export const IPLogViewer: React.FC<IPLogViewerProps> = ({ 
+  userId: initialUserId, 
+  showUserColumn = true,
+  showUserSelector = true 
+}) => {
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>(initialUserId);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [actionType, setActionType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [isUserSelectorOpen, setIsUserSelectorOpen] = useState(false);
+
+  // Fetch users for the selector
+  const { data: users = [] } = useQuery({
+    queryKey: ['admin-users-for-ip-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, name, email')
+        .is('deleted_at', null)
+        .order('name');
+      
+      if (error) throw error;
+      return data as UserOption[];
+    },
+    enabled: showUserSelector && !initialUserId,
+  });
+
+  // Get the effective userId (from props or selected)
+  const effectiveUserId = initialUserId || selectedUserId;
 
   const { logs, isLoading, refetch } = useAdminIPLogs({
-    userId,
+    userId: effectiveUserId,
     startDate,
     endDate,
     actionType,
   });
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!userSearchQuery) return users;
+    const query = userSearchQuery.toLowerCase();
+    return users.filter(user =>
+      user.name.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query)
+    );
+  }, [users, userSearchQuery]);
+
+  // Get selected user info
+  const selectedUser = useMemo(() => {
+    if (!selectedUserId) return null;
+    return users.find(u => u.user_id === selectedUserId) || null;
+  }, [users, selectedUserId]);
 
   const filteredLogs = logs.filter(log => {
     if (!searchQuery) return true;
@@ -61,6 +114,11 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
     setSearchQuery('');
   };
 
+  const clearUserSelection = () => {
+    setSelectedUserId(undefined);
+    setUserSearchQuery('');
+  };
+
   const formatLocation = (log: { country?: string; city?: string; region?: string }) => {
     const parts = [log.city, log.region, log.country].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : null;
@@ -75,7 +133,7 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
             <div>
               <CardTitle>IP Activity Logs</CardTitle>
               <CardDescription>
-                {userId ? 'User IP activity history' : 'All user IP activity across the platform'}
+                {effectiveUserId ? 'User IP activity history' : 'Select a user to view their activity or browse all logs'}
               </CardDescription>
             </div>
           </div>
@@ -86,6 +144,92 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* User Selector - only show if no userId prop and showUserSelector is true */}
+        {showUserSelector && !initialUserId && (
+          <div className="bg-muted/50 border rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <User className="h-4 w-4" />
+              <span>Select User</span>
+            </div>
+            
+            {selectedUser ? (
+              <div className="flex items-center justify-between bg-background border rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">
+                      {selectedUser.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{selectedUser.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearUserSelection}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Popover open={isUserSelectorOpen} onOpenChange={setIsUserSelectorOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isUserSelectorOpen}
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <User className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    <span className="text-muted-foreground">Search and select a user...</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput
+                      placeholder="Search by name or email..."
+                      value={userSearchQuery}
+                      onValueChange={setUserSearchQuery}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No users found.</CommandEmpty>
+                      <CommandGroup>
+                        <ScrollArea className="h-[300px]">
+                          {filteredUsers.map((user) => (
+                            <CommandItem
+                              key={user.user_id}
+                              value={user.user_id}
+                              onSelect={() => {
+                                setSelectedUserId(user.user_id);
+                                setIsUserSelectorOpen(false);
+                                setUserSearchQuery('');
+                              }}
+                              className="flex items-center gap-3 p-2 cursor-pointer"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-medium text-primary">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{user.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </ScrollArea>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
@@ -109,6 +253,9 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
               <SelectItem value="order_placed">Order Placed</SelectItem>
               <SelectItem value="payout_request">Payout Request</SelectItem>
               <SelectItem value="profile_update">Profile Update</SelectItem>
+              <SelectItem value="postpaid_repayment">Postpaid Repayment</SelectItem>
+              <SelectItem value="crypto_payment">Crypto Payment</SelectItem>
+              <SelectItem value="kyc_submission">KYC Submission</SelectItem>
             </SelectContent>
           </Select>
 
@@ -170,7 +317,7 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
           <Table>
             <TableHeader>
               <TableRow>
-                {showUserColumn && <TableHead>User</TableHead>}
+                {showUserColumn && !effectiveUserId && <TableHead>User</TableHead>}
                 <TableHead>IP Address</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Action</TableHead>
@@ -180,7 +327,7 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={showUserColumn ? 5 : 4} className="text-center py-8">
+                  <TableCell colSpan={showUserColumn && !effectiveUserId ? 5 : 4} className="text-center py-8">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="h-4 w-4 animate-spin" />
                       Loading logs...
@@ -189,8 +336,8 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={showUserColumn ? 5 : 4} className="text-center py-8 text-muted-foreground">
-                    No IP logs found
+                  <TableCell colSpan={showUserColumn && !effectiveUserId ? 5 : 4} className="text-center py-8 text-muted-foreground">
+                    {effectiveUserId ? 'No IP logs found for this user' : 'Select a user to view their activity logs'}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -203,7 +350,7 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
                   
                   return (
                     <TableRow key={log.id}>
-                      {showUserColumn && (
+                      {showUserColumn && !effectiveUserId && (
                         <TableCell>
                           <div>
                             <div className="font-medium">{log.user_name}</div>
@@ -244,6 +391,7 @@ export const IPLogViewer: React.FC<IPLogViewerProps> = ({ userId, showUserColumn
 
         <div className="text-sm text-muted-foreground">
           Showing {filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''}
+          {effectiveUserId && selectedUser && ` for ${selectedUser.name}`}
         </div>
       </CardContent>
     </Card>
