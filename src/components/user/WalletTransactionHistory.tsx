@@ -112,7 +112,7 @@ export const WalletTransactionHistory: React.FC<WalletTransactionHistoryProps> =
                   </div>
                 </div>
               </div>
-              <div className={cn('text-sm font-semibold', getTransactionColor(tx.type))}>
+              <div className={cn('text-sm font-semibold whitespace-nowrap', getTransactionColor(tx.type))}>
                 {tx.type === 'order_commission' || tx.type === 'credit' || tx.type === 'refund'
                   ? '+'
                   : '-'}
