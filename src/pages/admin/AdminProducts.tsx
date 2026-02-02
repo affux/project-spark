@@ -18,7 +18,8 @@ import {
   Upload,
   Wand2,
   BookOpen,
-  Shuffle
+  Shuffle,
+  Sparkles
 } from 'lucide-react';
 import { SmartProductGenerator } from '@/components/admin/SmartProductGenerator';
 import { CreateCatalogDialog } from '@/components/admin/CreateCatalogDialog';
@@ -67,6 +68,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveCategories } from '@/hooks/useWorkTypeCategories';
 import { useCreateCategory } from '@/hooks/useWorkTypeCategories';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,6 +84,8 @@ const AdminProducts: React.FC = () => {
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [categoryTarget, setCategoryTarget] = useState<'add' | 'edit'>('add');
+  const [isGeneratingAddDesc, setIsGeneratingAddDesc] = useState(false);
+  const [isGeneratingEditDesc, setIsGeneratingEditDesc] = useState(false);
   
   const [addForm, setAddForm] = useState({
     name: '',
@@ -103,6 +107,7 @@ const AdminProducts: React.FC = () => {
 
   const [newProductId, setNewProductId] = useState<string | null>(null);
 
+  const { toast } = useToast();
   const createCategory = useCreateCategory();
   const {
     products,
@@ -138,6 +143,54 @@ const AdminProducts: React.FC = () => {
     
     return matchesSearch && matchesCategory;
   });
+
+  const handleGenerateDescription = async (
+    productName: string, 
+    category: string | undefined, 
+    setDescription: (desc: string) => void,
+    setIsGenerating: (val: boolean) => void
+  ) => {
+    if (!productName.trim()) {
+      toast({
+        title: 'Product name required',
+        description: 'Please enter a product name first to generate description.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const response = await supabase.functions.invoke('generate-description', {
+        body: { productName, category }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate description');
+      }
+      
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+      
+      if (response.data?.description) {
+        setDescription(response.data.description);
+        toast({
+          title: 'Description generated',
+          description: 'AI-generated description has been added.',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      toast({
+        title: 'Generation failed',
+        description: error.message || 'Failed to generate description. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -320,12 +373,35 @@ const AdminProducts: React.FC = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="description">Description</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
+                        onClick={() => handleGenerateDescription(
+                          addForm.name,
+                          addForm.category,
+                          (desc) => setAddForm(prev => ({ ...prev, description: desc })),
+                          setIsGeneratingAddDesc
+                        )}
+                        disabled={!addForm.name.trim() || isGeneratingAddDesc}
+                      >
+                        {isGeneratingAddDesc ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        {isGeneratingAddDesc ? 'Generating...' : 'Auto Generate'}
+                      </Button>
+                    </div>
                     <Textarea 
                       id="description" 
                       value={addForm.description}
                       onChange={(e) => setAddForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Enter product description" 
+                      placeholder="Enter product description or use Auto Generate" 
+                      className="min-h-[100px]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -622,11 +698,35 @@ const AdminProducts: React.FC = () => {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-description">Description</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
+                      onClick={() => handleGenerateDescription(
+                        editForm.name,
+                        editForm.category,
+                        (desc) => setEditForm(prev => ({ ...prev, description: desc })),
+                        setIsGeneratingEditDesc
+                      )}
+                      disabled={!editForm.name.trim() || isGeneratingEditDesc}
+                    >
+                      {isGeneratingEditDesc ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      {isGeneratingEditDesc ? 'Generating...' : 'Auto Generate'}
+                    </Button>
+                  </div>
                   <Textarea 
                     id="edit-description" 
                     value={editForm.description}
                     onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter product description or use Auto Generate"
+                    className="min-h-[100px]"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
