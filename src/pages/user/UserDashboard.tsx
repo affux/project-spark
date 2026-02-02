@@ -51,7 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
 const UserDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { orders, recentOrders, stats, profile, isLoading, refetchOrders } = useUserDashboard();
   const { settingsMap } = usePlatformSettings();
@@ -153,27 +153,34 @@ const UserDashboard: React.FC = () => {
 
   const handlePayOrder = async (order: typeof recentOrders[0]) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'paid_by_user',
-          paid_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
+      const amount = order.base_price * order.quantity;
+      
+      // Use the edge function to properly deduct wallet balance
+      const { data, error } = await supabase.functions.invoke('process-wallet-payment', {
+        body: { orderId: order.id },
+      });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'Payment failed');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Payment processing failed');
+      }
 
       toast({
         title: 'Payment Successful',
-        description: `Payment of ${currencySymbol}${(order.base_price * order.quantity).toFixed(2)} confirmed for order ${order.order_number}`,
+        description: `Payment of ${currencySymbol}${amount.toFixed(2)} confirmed for order ${order.order_number}`,
       });
       
+      // Refresh user data to update wallet balance
+      await refreshUser();
       refetchOrders();
     } catch (error) {
       console.error('Payment error:', error);
       toast({
         title: 'Payment Failed',
-        description: 'Could not process payment. Please try again.',
+        description: error instanceof Error ? error.message : 'Could not process payment. Please try again.',
         variant: 'destructive',
       });
     }
