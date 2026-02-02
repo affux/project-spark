@@ -262,9 +262,10 @@ export const UserPaymentSettingsPanel: React.FC<UserPaymentSettingsPanelProps> =
                         </div>
                       </div>
                       <Switch
-                        checked={isEnabled}
+                        checked={isGloballyDisabled ? false : isEnabled}
                         onCheckedChange={() => handleToggle(method.id)}
                         disabled={isGloballyDisabled}
+                        className={isGloballyDisabled ? "opacity-50" : ""}
                       />
                     </div>
                   );
