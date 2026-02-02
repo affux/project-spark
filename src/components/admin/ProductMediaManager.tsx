@@ -174,6 +174,8 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
   const [isUploadingPrimary, setIsUploadingPrimary] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showPrimaryUrlInput, setShowPrimaryUrlInput] = useState(false);
+  const [primaryUrlInput, setPrimaryUrlInput] = useState('');
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
   const [isSettingPrimary, setIsSettingPrimary] = useState(false);
@@ -397,6 +399,45 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
     }
   };
 
+  const handleSetPrimaryFromUrl = async () => {
+    const url = primaryUrlInput.trim();
+    if (!url) return;
+
+    setIsSettingPrimary(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ image_url: url })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      // Also add to media gallery
+      await addMedia({
+        product_id: productId,
+        media_type: 'image',
+        url,
+      });
+
+      setPrimaryImageUrl(url);
+      setPrimaryUrlInput('');
+      setShowPrimaryUrlInput(false);
+      toast({
+        title: 'Primary Image Set',
+        description: 'Product image has been set from URL.',
+      });
+    } catch (error) {
+      console.error('Error setting primary from URL:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to set primary image from URL.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSettingPrimary(false);
+    }
+  };
+
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -577,21 +618,53 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
                   </button>
                 </div>
               ) : (
-                <div 
-                  className={cn(
-                    "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                    isPrimaryDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                <div className="space-y-3">
+                  <div 
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                      isPrimaryDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => primaryFileInputRef.current?.click()}
+                  >
+                    {isUploadingPrimary ? (
+                      <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin mb-2" />
+                    ) : (
+                      <ImagePlus className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {isUploadingPrimary ? 'Uploading...' : 'Click or drag & drop to set product image'}
+                    </p>
+                  </div>
+                  
+                  {/* Add from URL button */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setShowPrimaryUrlInput(!showPrimaryUrlInput)}
+                      className="text-sm text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      Add from URL
+                    </button>
+                  </div>
+
+                  {/* Primary URL Input */}
+                  {showPrimaryUrlInput && (
+                    <div className="flex gap-2">
+                      <Input
+                        value={primaryUrlInput}
+                        onChange={(e) => setPrimaryUrlInput(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleSetPrimaryFromUrl}
+                        disabled={!primaryUrlInput.trim() || isSettingPrimary}
+                        size="sm"
+                      >
+                        {isSettingPrimary ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Set'}
+                      </Button>
+                    </div>
                   )}
-                  onClick={() => primaryFileInputRef.current?.click()}
-                >
-                  {isUploadingPrimary ? (
-                    <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin mb-2" />
-                  ) : (
-                    <ImagePlus className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    {isUploadingPrimary ? 'Uploading...' : 'Click or drag & drop to set product image'}
-                  </p>
                 </div>
               )}
             </div>
