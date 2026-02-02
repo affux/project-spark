@@ -782,6 +782,7 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
               {/* Add gallery images link */}
               <div className="pt-4 flex items-center justify-center gap-4">
                 <button
+                  type="button"
                   onClick={() => galleryFileInputRef.current?.click()}
                   disabled={isUploadingGallery}
                   className="text-sm text-primary hover:underline flex items-center gap-1"
@@ -789,13 +790,20 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
                   {isUploadingGallery ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                   Add product gallery images
                 </button>
-                <button
-                  onClick={() => setShowUrlInput(!showUrlInput)}
-                  className="text-sm text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowUrlInput(!showUrlInput);
+                  }}
+                  className="text-sm text-muted-foreground hover:text-primary p-0 h-auto"
                 >
-                  <LinkIcon className="w-3 h-3" />
+                  <LinkIcon className="w-3 h-3 mr-1" />
                   Add from URL
-                </button>
+                </Button>
               </div>
 
               {/* URL Input */}
