@@ -64,6 +64,7 @@ import { ProductMediaManager } from '@/components/admin/ProductMediaManager';
 import { BulkProductImport } from '@/components/admin/BulkProductImport';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useActiveCategories } from '@/hooks/useWorkTypeCategories';
 
 const AdminProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,7 +100,7 @@ const AdminProducts: React.FC = () => {
 
   const {
     products,
-    categories,
+    categories: existingCategories,
     isLoading,
     addProduct,
     isAddingProduct,
@@ -110,6 +111,16 @@ const AdminProducts: React.FC = () => {
     deleteProduct,
     isDeletingProduct,
   } = useAdminProducts();
+
+  // Fetch categories from database
+  const { data: dbCategories = [] } = useActiveCategories();
+
+  // Merge categories: database categories + existing product categories
+  const allCategories = React.useMemo(() => {
+    const dbCatNames = dbCategories.map(c => c.name);
+    const merged = new Set([...dbCatNames, ...existingCategories]);
+    return Array.from(merged).filter(Boolean).sort();
+  }, [dbCategories, existingCategories]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
@@ -389,7 +400,7 @@ const AdminProducts: React.FC = () => {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover">
-                          {categories.map((cat) => (
+                          {allCategories.map((cat) => (
                             <SelectItem key={cat} value={cat as string}>
                               {cat}
                             </SelectItem>
@@ -448,7 +459,7 @@ const AdminProducts: React.FC = () => {
               <Filter className="w-4 h-4" />
               All Categories
             </Button>
-            {categories.map(category => (
+            {allCategories.map(category => (
               <Button 
                 key={category} 
                 variant={selectedCategory === category ? "default" : "ghost"} 
@@ -657,7 +668,7 @@ const AdminProducts: React.FC = () => {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
-                        {categories.map((cat) => (
+                        {allCategories.map((cat) => (
                           <SelectItem key={cat} value={cat as string}>
                             {cat}
                           </SelectItem>
