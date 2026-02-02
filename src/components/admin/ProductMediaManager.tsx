@@ -808,14 +808,20 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
 
               {/* URL Input */}
               {showUrlInput && (
-                <div className="flex gap-2 p-3 bg-muted/50 rounded-lg">
-                  <div className="flex-1 space-y-2">
+                <div className="flex gap-2 p-4 bg-muted/50 rounded-lg border border-border mt-2">
+                  <div className="flex-1 space-y-3">
+                    <Label className="text-sm font-medium">Add Images/Videos from URL</Label>
                     <textarea
-                      placeholder="Enter image or video URLs (one per line or comma-separated)..."
+                      autoFocus
+                      placeholder="Enter image or video URLs (one per line or comma-separated)...
+
+Example:
+https://example.com/image1.jpg
+https://example.com/image2.jpg"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
-                      className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                      rows={3}
+                      className="w-full min-h-[120px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+                      rows={5}
                     />
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
@@ -851,9 +857,10 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
                       size="sm"
                       onClick={handleAddUrl}
                       disabled={!urlInput.trim() || isAddingMedia}
-                      className="h-7"
+                      className="h-8 px-3"
                     >
-                      {isAddingMedia ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      {isAddingMedia ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3 mr-1" />}
+                      {!isAddingMedia && 'Add'}
                     </Button>
                     <Button
                       type="button"
@@ -863,7 +870,7 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
                         setShowUrlInput(false);
                         setUrlInput('');
                       }}
-                      className="h-7"
+                      className="h-8"
                     >
                       <X className="w-3 h-3" />
                     </Button>
