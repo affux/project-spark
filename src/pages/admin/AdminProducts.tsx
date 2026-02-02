@@ -52,6 +52,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -65,6 +66,7 @@ import { BulkProductImport } from '@/components/admin/BulkProductImport';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveCategories } from '@/hooks/useWorkTypeCategories';
+import { useCreateCategory } from '@/hooks/useWorkTypeCategories';
 
 const AdminProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,6 +79,9 @@ const AdminProducts: React.FC = () => {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryTarget, setCategoryTarget] = useState<'add' | 'edit'>('add');
   
   const [addForm, setAddForm] = useState({
     name: '',
@@ -98,6 +103,7 @@ const AdminProducts: React.FC = () => {
 
   const [newProductId, setNewProductId] = useState<string | null>(null);
 
+  const createCategory = useCreateCategory();
   const {
     products,
     categories: existingCategories,
@@ -394,12 +400,26 @@ const AdminProducts: React.FC = () => {
                       <Label htmlFor="category">Category</Label>
                       <Select
                         value={addForm.category}
-                        onValueChange={(value) => setAddForm(prev => ({ ...prev, category: value }))}
+                        onValueChange={(value) => {
+                          if (value === '__new__') {
+                            setCategoryTarget('add');
+                            setIsNewCategoryOpen(true);
+                          } else {
+                            setAddForm(prev => ({ ...prev, category: value }));
+                          }
+                        }}
                       >
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover">
+                          <SelectItem value="__new__" className="text-primary font-medium">
+                            <span className="flex items-center gap-2">
+                              <Plus className="w-3 h-3" />
+                              Create New Category
+                            </span>
+                          </SelectItem>
+                          {allCategories.length > 0 && <SelectSeparator />}
                           {allCategories.map((cat) => (
                             <SelectItem key={cat} value={cat as string}>
                               {cat}
@@ -662,12 +682,26 @@ const AdminProducts: React.FC = () => {
                     <Label htmlFor="edit-category">Category</Label>
                     <Select
                       value={editForm.category}
-                      onValueChange={(value) => setEditForm(prev => ({ ...prev, category: value }))}
+                      onValueChange={(value) => {
+                        if (value === '__new__') {
+                          setCategoryTarget('edit');
+                          setIsNewCategoryOpen(true);
+                        } else {
+                          setEditForm(prev => ({ ...prev, category: value }));
+                        }
+                      }}
                     >
                       <SelectTrigger className="bg-background">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
+                        <SelectItem value="__new__" className="text-primary font-medium">
+                          <span className="flex items-center gap-2">
+                            <Plus className="w-3 h-3" />
+                            Create New Category
+                          </span>
+                        </SelectItem>
+                        {allCategories.length > 0 && <SelectSeparator />}
                         {allCategories.map((cat) => (
                           <SelectItem key={cat} value={cat as string}>
                             {cat}
@@ -761,6 +795,67 @@ const AdminProducts: React.FC = () => {
           open={isCatalogOpen}
           onOpenChange={setIsCatalogOpen}
         />
+
+        {/* New Category Dialog */}
+        <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Create New Category</DialogTitle>
+              <DialogDescription>
+                Add a new category for your products.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-category-name">Category Name</Label>
+                <Input
+                  id="new-category-name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Enter category name"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsNewCategoryOpen(false);
+                  setNewCategoryName('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={!newCategoryName.trim() || createCategory.isPending}
+                onClick={async () => {
+                  const name = newCategoryName.trim();
+                  if (!name) return;
+                  
+                  try {
+                    await createCategory.mutateAsync({ name, color: '#6366f1' });
+                    // Set the new category in the appropriate form
+                    if (categoryTarget === 'add') {
+                      setAddForm(prev => ({ ...prev, category: name }));
+                    } else {
+                      setEditForm(prev => ({ ...prev, category: name }));
+                    }
+                    setNewCategoryName('');
+                    setIsNewCategoryOpen(false);
+                  } catch (error) {
+                    // Error handled by mutation
+                  }
+                }}
+              >
+                {createCategory.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Create Category
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
