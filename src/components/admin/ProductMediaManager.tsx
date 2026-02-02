@@ -507,21 +507,44 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
   };
 
   const handleAddUrl = async () => {
-    if (!urlInput.trim()) return;
+    const trimmedInput = urlInput.trim();
+    if (!trimmedInput) {
+      toast({
+        title: 'No URL provided',
+        description: 'Please enter at least one image or video URL.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     // Split by newlines or commas to support multiple URLs
-    const urls = urlInput
+    const urls = trimmedInput
       .split(/[\n,]+/)
       .map(url => url.trim())
       .filter(url => url.length > 0);
 
-    if (urls.length === 0) return;
+    if (urls.length === 0) {
+      toast({
+        title: 'No valid URLs',
+        description: 'Please enter valid URLs.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     let successCount = 0;
     let failCount = 0;
 
+    // Process URLs one by one with proper error handling
     for (const url of urls) {
       try {
+        // Basic URL validation
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          console.warn('Invalid URL format:', url);
+          failCount++;
+          continue;
+        }
+
         await addMedia({
           product_id: productId,
           media_type: urlType,
@@ -529,21 +552,27 @@ export const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({ produc
         });
         successCount++;
       } catch (error) {
-        console.error('Error adding URL:', error);
+        console.error('Error adding URL:', url, error);
         failCount++;
       }
     }
 
-    if (urls.length > 1) {
+    // Show summary toast for multiple URLs or if there were any failures
+    if (urls.length > 1 || failCount > 0) {
       toast({
-        title: failCount === 0 ? 'URLs Added' : 'Partially Added',
-        description: `Added ${successCount} of ${urls.length} ${urlType}s.`,
-        variant: failCount > 0 ? 'destructive' : 'default',
+        title: failCount === 0 ? 'URLs Added' : (successCount > 0 ? 'Partially Added' : 'Failed to Add'),
+        description: successCount > 0 
+          ? `Added ${successCount} of ${urls.length} ${urlType}(s).`
+          : `Could not add any URLs. Please check the format.`,
+        variant: failCount > 0 && successCount === 0 ? 'destructive' : (failCount > 0 ? 'default' : 'default'),
       });
     }
 
-    setUrlInput('');
-    setShowUrlInput(false);
+    // Only clear if at least one was successful
+    if (successCount > 0) {
+      setUrlInput('');
+      setShowUrlInput(false);
+    }
   };
 
   if (isLoading) {
