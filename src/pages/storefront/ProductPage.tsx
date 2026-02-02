@@ -58,11 +58,12 @@ const ProductPage = () => {
   const { settings: publicSettings } = usePublicSettings();
 
   const { data: product, isLoading, error } = useQuery({
-    queryKey: ['public-product', productId],
+    queryKey: ['public-product', productId, slug],
     queryFn: async () => {
       if (!productId) return null;
 
-      const { data, error } = await supabase
+      // First try to find by storefront_product id
+      let { data, error: fetchError } = await supabase
         .from('storefront_products')
         .select(`
           id,
@@ -84,9 +85,46 @@ const ProductPage = () => {
         .eq('is_active', true)
         .single();
 
-      if (error) {
-        console.error('Error fetching product:', error);
-        throw error;
+      // If not found by storefront_product id, try by product_id (for shared links with ?product=)
+      if (fetchError || !data) {
+        // Get store owner by slug first
+        const { data: storeOwner } = await supabase
+          .rpc('get_public_storefront_profile', { _slug: slug });
+        
+        if (storeOwner && storeOwner.length > 0) {
+          const { data: byProductId, error: productError } = await supabase
+            .from('storefront_products')
+            .select(`
+              id,
+              product_id,
+              selling_price,
+              custom_description,
+              is_active,
+              user_id,
+              products!inner(
+                id,
+                name,
+                description,
+                image_url,
+                category,
+                stock
+              )
+            `)
+            .eq('product_id', productId)
+            .eq('user_id', storeOwner[0].user_id)
+            .eq('is_active', true)
+            .single();
+          
+          if (!productError && byProductId) {
+            data = byProductId;
+            fetchError = null;
+          }
+        }
+      }
+
+      if (fetchError) {
+        console.error('Error fetching product:', fetchError);
+        throw fetchError;
       }
 
       if (!data) return null;

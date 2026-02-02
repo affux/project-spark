@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { usePublicStorefront, PublicStorefrontProduct } from '@/hooks/usePublicStorefront';
 import { usePublicSettings } from '@/hooks/usePublicSettings';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,8 @@ const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45
 
 const Storefront: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { store, products, isLoading, isStoreNotFound } = usePublicStorefront(slug);
   const { settings: publicSettings, isLoading: isLoadingSettings } = usePublicSettings();
@@ -80,6 +82,14 @@ const Storefront: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle ?product= query parameter - redirect to product page
+  useEffect(() => {
+    const productParam = searchParams.get('product');
+    if (productParam && slug) {
+      navigate(`/store/${slug}/product/${productParam}`, { replace: true });
+    }
+  }, [searchParams, slug, navigate]);
 
   const bannerUrl = store?.storefront_banner || DEFAULT_BANNER;
 
