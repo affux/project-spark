@@ -34,6 +34,7 @@ import AdminCryptoPayments from "./pages/admin/AdminCryptoPayments";
 import AdminWorkspace from "./pages/admin/AdminWorkspace";
 import AdminPostpaid from "./pages/admin/AdminPostpaid";
 import AdminHealthCheck from "./pages/admin/AdminHealthCheck";
+import AdminVideos from "./pages/admin/AdminVideos";
 
 // User Pages
 import UserDashboard from "./pages/user/UserDashboard";
@@ -142,6 +143,7 @@ const AppRoutes = () => {
       <Route path="/admin/workspace" element={<ProtectedRoute allowedRoles={['admin']}><AdminWorkspace /></ProtectedRoute>} />
       <Route path="/admin/postpaid" element={<ProtectedRoute allowedRoles={['admin']}><AdminPostpaid /></ProtectedRoute>} />
       <Route path="/admin/health-check" element={<ProtectedRoute allowedRoles={['admin']}><AdminHealthCheck /></ProtectedRoute>} />
+      <Route path="/admin/videos" element={<ProtectedRoute allowedRoles={['admin']}><AdminVideos /></ProtectedRoute>} />
       
       {/* User Routes */}
       <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['user']}><UserDashboard /></ProtectedRoute>} />
