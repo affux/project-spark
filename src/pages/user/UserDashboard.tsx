@@ -75,8 +75,13 @@ const UserDashboard: React.FC = () => {
   useWalletRealtimeUser(user?.id);
   
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
-  const tutorialVideoUrl = publicSettings.user_dashboard_video_url || settingsMap.user_dashboard_video_url;
-  const videoTutorials = (publicSettings.video_tutorials?.length ? publicSettings.video_tutorials : settingsMap.video_tutorials) || [];
+  const videoTutorials =
+    (publicSettings.video_tutorials?.length ? publicSettings.video_tutorials : settingsMap.video_tutorials) || [];
+  const tutorialVideoUrl =
+    publicSettings.user_dashboard_video_url ||
+    settingsMap.user_dashboard_video_url ||
+    videoTutorials[0]?.videoUrl ||
+    '';
   const progressPercentage = getProgress(videoTutorials.length);
 
   // Get YouTube thumbnail
@@ -143,11 +148,28 @@ const UserDashboard: React.FC = () => {
     }
 
     // Direct video file
+    if (videoLoadErrorUrl === url) {
+      return (
+        <div className="w-full aspect-video rounded-xl bg-muted/30 flex items-center justify-center">
+          <div className="text-center space-y-3 px-6">
+            <p className="text-sm text-muted-foreground">This video can’t be played in the app.</p>
+            <Button asChild variant="secondary" size="sm">
+              <a href={url} target="_blank" rel="noreferrer">
+                Open video in new tab
+              </a>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <video
         src={url}
         controls
         className="w-full aspect-video rounded-xl"
+        playsInline
+        onError={() => setVideoLoadErrorUrl(url)}
       >
         Your browser does not support the video tag.
       </video>
