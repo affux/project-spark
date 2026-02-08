@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -18,7 +18,15 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, Users, Video, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CheckCircle, Users, Video, Clock, Search, Filter } from 'lucide-react';
 import { usePlatformSettings, VideoTutorial } from '@/hooks/usePlatformSettings';
 import { format } from 'date-fns';
 
@@ -35,6 +43,8 @@ interface TutorialCompletionWithUser {
 export const TutorialCompletionViewer: React.FC = () => {
   const { settingsMap } = usePlatformSettings();
   const videoTutorials: VideoTutorial[] = settingsMap.video_tutorials || [];
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'in_progress'>('all');
 
   // Fetch all completions with user info
   const { data: completions = [], isLoading } = useQuery({
@@ -77,7 +87,7 @@ export const TutorialCompletionViewer: React.FC = () => {
   });
 
   // Group completions by user
-  const userCompletionStats = React.useMemo(() => {
+  const userCompletionStats = useMemo(() => {
     const stats: Record<string, { name: string; email: string; completed: string[]; lastActivity: string }> = {};
     
     completions.forEach((c) => {
@@ -102,6 +112,24 @@ export const TutorialCompletionViewer: React.FC = () => {
       isAllCompleted: videoTutorials.length > 0 && data.completed.length >= videoTutorials.length,
     })).sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime());
   }, [completions, videoTutorials.length]);
+
+  // Filtered user stats
+  const filteredUserStats = useMemo(() => {
+    return userCompletionStats.filter((user) => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = 
+        statusFilter === 'all' ||
+        (statusFilter === 'completed' && user.isAllCompleted) ||
+        (statusFilter === 'in_progress' && !user.isAllCompleted);
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [userCompletionStats, searchQuery, statusFilter]);
 
   // Find video title by ID
   const getVideoTitle = (videoId: string) => {
@@ -165,10 +193,36 @@ export const TutorialCompletionViewer: React.FC = () => {
           </div>
         </div>
 
-        {userCompletionStats.length === 0 ? (
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="completed">Fully Completed</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {filteredUserStats.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Video className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No users have completed any tutorials yet</p>
+            <p>{userCompletionStats.length === 0 ? 'No users have completed any tutorials yet' : 'No users match your filters'}</p>
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -182,7 +236,7 @@ export const TutorialCompletionViewer: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userCompletionStats.map((user) => (
+                {filteredUserStats.map((user) => (
                   <TableRow key={user.userId}>
                     <TableCell>
                       <div>
