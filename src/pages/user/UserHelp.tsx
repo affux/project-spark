@@ -9,8 +9,9 @@ import {
 } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HelpCircle, PlayCircle, Bot, MessageCircle, ExternalLink, Video, X, CheckCircle, Circle } from 'lucide-react';
-import { usePlatformSettings, VideoTutorial } from '@/hooks/usePlatformSettings';
+import { VideoTutorial } from '@/hooks/usePlatformSettings';
 import { useVideoTutorialProgress } from '@/hooks/useVideoTutorialProgress';
+import { usePublicSettings } from '@/hooks/usePublicSettings';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,16 +20,16 @@ import { Badge } from '@/components/ui/badge';
 import { TutorialAchievements } from '@/components/user/TutorialAchievements';
 
 const UserHelp: React.FC = () => {
-  const { settingsMap, isLoading } = usePlatformSettings();
+  const { settings: publicSettings, isLoading } = usePublicSettings();
   const { isTutorialWatched, markAsWatched, watchedCount, getProgress } = useVideoTutorialProgress();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
 
-  const faqItems = settingsMap.faq_items || [];
-  const videoTutorials = settingsMap.video_tutorials || [];
+  const faqItems = publicSettings.faq_items || [];
+  const videoTutorials = publicSettings.video_tutorials || [];
 
   // If a dedicated “Getting Started” video isn’t set, fallback to the first tutorial.
-  const videoUrl = settingsMap.user_dashboard_video_url || videoTutorials[0]?.videoUrl;
+  const videoUrl = publicSettings.user_dashboard_video_url || videoTutorials[0]?.videoUrl;
 
   const progressPercentage = getProgress(videoTutorials.length);
 
