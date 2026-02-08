@@ -15,6 +15,7 @@ import { OnboardingCards } from '@/components/onboarding';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDashboard } from '@/hooks/useUserDashboard';
 import { usePlatformSettings, CURRENCY_SYMBOLS, VideoTutorial } from '@/hooks/usePlatformSettings';
+import { usePublicSettings } from '@/hooks/usePublicSettings';
 import { useVideoTutorialProgress } from '@/hooks/useVideoTutorialProgress';
 import { useLevelMilestone } from '@/hooks/useLevelMilestone';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -55,10 +56,12 @@ const UserDashboard: React.FC = () => {
   const { toast } = useToast();
   const { orders, recentOrders, stats, profile, isLoading, refetchOrders } = useUserDashboard();
   const { settingsMap } = usePlatformSettings();
+  const { settings: publicSettings } = usePublicSettings();
   const { isTutorialWatched, markAsWatched, watchedCount, getProgress } = useVideoTutorialProgress();
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [isPostpaidPanelOpen, setIsPostpaidPanelOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
+  const [videoLoadErrorUrl, setVideoLoadErrorUrl] = useState<string | null>(null);
   
   // Hook for milestone notifications (runs in background)
   useLevelMilestone();
@@ -72,8 +75,8 @@ const UserDashboard: React.FC = () => {
   useWalletRealtimeUser(user?.id);
   
   const currencySymbol = CURRENCY_SYMBOLS[settingsMap.default_currency] || '$';
-  const tutorialVideoUrl = settingsMap.user_dashboard_video_url;
-  const videoTutorials = settingsMap.video_tutorials || [];
+  const tutorialVideoUrl = publicSettings.user_dashboard_video_url || settingsMap.user_dashboard_video_url;
+  const videoTutorials = (publicSettings.video_tutorials?.length ? publicSettings.video_tutorials : settingsMap.video_tutorials) || [];
   const progressPercentage = getProgress(videoTutorials.length);
 
   // Get YouTube thumbnail
@@ -550,33 +553,64 @@ const UserDashboard: React.FC = () => {
       </Dialog>
 
       {/* Video Tutorial Player Dialog */}
-      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
+      <Dialog
+        open={!!selectedVideo}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedVideo(null);
+            setVideoLoadErrorUrl(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="pr-8">{selectedVideo?.title}</DialogTitle>
           </DialogHeader>
-          <div className="relative aspect-video w-full">
-            {selectedVideo && (
-              <iframe
-                src={getYouTubeEmbedUrl(selectedVideo.videoUrl) || ''}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={selectedVideo.title}
-              />
-            )}
+
+          <div className="relative aspect-video w-full bg-black">
+            {selectedVideo ? (
+              videoLoadErrorUrl === selectedVideo.videoUrl ? (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center space-y-3 px-6">
+                    <Video className="w-12 h-12 mx-auto opacity-50" />
+                    <p className="text-sm">This video can’t be played in the app.</p>
+                    <Button asChild variant="secondary" size="sm">
+                      <a href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
+                        Open video in new tab
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ) : selectedVideo.videoUrl.includes('youtube.com') || selectedVideo.videoUrl.includes('youtu.be') ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(selectedVideo.videoUrl) || ''}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={selectedVideo.title}
+                />
+              ) : (
+                <video
+                  src={selectedVideo.videoUrl}
+                  className="absolute inset-0 w-full h-full"
+                  controls
+                  autoPlay
+                  playsInline
+                  onError={() => setVideoLoadErrorUrl(selectedVideo.videoUrl)}
+                />
+              )
+            ) : null}
           </div>
+
           <div className="p-4 flex items-center justify-between gap-4">
             <div className="flex-1">
               {selectedVideo?.description && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedVideo.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{selectedVideo.description}</p>
               )}
             </div>
             {selectedVideo && (
               <Button
-                variant={isTutorialWatched(selectedVideo.id) ? "secondary" : "default"}
+                variant={isTutorialWatched(selectedVideo.id) ? 'secondary' : 'default'}
                 size="sm"
                 onClick={() => {
                   markAsWatched(selectedVideo.id);
