@@ -51,6 +51,20 @@ const UserHelp: React.FC = () => {
 
   const topics = Object.keys(tutorialsByTopic).sort();
 
+  // Check if URL is a direct video file (mp4, webm, etc.)
+  const isDirectVideoUrl = (url: string) => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+    const lowerUrl = url.toLowerCase();
+    return videoExtensions.some(ext => lowerUrl.includes(ext));
+  };
+
+  // Check if URL is a YouTube video
+  const isYouTubeUrl = (url: string) => {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
   // Extract YouTube video ID for embedding
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
@@ -73,8 +87,7 @@ const UserHelp: React.FC = () => {
         .replace('https://www.youtube-nocookie.com/embed/', `${base}/`);
     }
 
-    // Otherwise return as-is (may be a direct video link or other provider)
-    return url;
+    return null;
   };
 
   const getYouTubeThumbnail = (url: string) => {
@@ -87,7 +100,8 @@ const UserHelp: React.FC = () => {
     return null;
   };
 
-  const embedUrl = getYouTubeEmbedUrl(videoUrl);
+  const embedUrl = isYouTubeUrl(videoUrl || '') ? getYouTubeEmbedUrl(videoUrl || '') : null;
+  const isGettingStartedDirectVideo = isDirectVideoUrl(videoUrl || '');
 
   const handlePlayVideo = (tutorial: VideoTutorial) => {
     setSelectedVideo(tutorial);
@@ -121,16 +135,28 @@ const UserHelp: React.FC = () => {
           <CardContent>
             {isLoading ? (
               <Skeleton className="aspect-video w-full rounded-lg" />
-            ) : videoUrl && embedUrl ? (
-              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            ) : videoUrl && (embedUrl || isGettingStartedDirectVideo) ? (
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
                 {isVideoPlaying ? (
-                  <iframe
-                    src={embedUrl}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title="Getting Started Tutorial"
-                  />
+                  isGettingStartedDirectVideo ? (
+                    <video
+                      src={videoUrl}
+                      className="absolute inset-0 w-full h-full"
+                      controls
+                      autoPlay
+                      playsInline
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <iframe
+                      src={embedUrl || ''}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Getting Started Tutorial"
+                    />
+                  )
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
                     <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mb-4">
@@ -203,27 +229,32 @@ const UserHelp: React.FC = () => {
                 // Single topic - show grid directly
                 <div className="grid sm:grid-cols-2 gap-4">
                   {tutorialsByTopic[topics[0]].map(tutorial => {
-                    const thumbnail = getYouTubeThumbnail(tutorial.videoUrl);
-                    const isWatched = isTutorialWatched(tutorial.id);
-                    return (
-                      <div
-                        key={tutorial.id}
-                        className={`group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer ${isWatched ? 'border-green-500/50 bg-green-500/5' : ''}`}
-                        onClick={() => handlePlayVideo(tutorial)}
-                      >
-                        <div className="relative aspect-video bg-muted">
-                          {thumbnail ? (
-                            <img
-                              src={thumbnail}
-                              loading="lazy"
-                              alt={tutorial.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Video className="w-10 h-10 text-muted-foreground opacity-50" />
-                            </div>
-                          )}
+                      const thumbnail = isYouTubeUrl(tutorial.videoUrl) ? getYouTubeThumbnail(tutorial.videoUrl) : null;
+                      const isDirectVideo = isDirectVideoUrl(tutorial.videoUrl);
+                      const isWatched = isTutorialWatched(tutorial.id);
+                      return (
+                        <div
+                          key={tutorial.id}
+                          className={`group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer ${isWatched ? 'border-green-500/50 bg-green-500/5' : ''}`}
+                          onClick={() => handlePlayVideo(tutorial)}
+                        >
+                          <div className="relative aspect-video bg-muted">
+                            {thumbnail ? (
+                              <img
+                                src={thumbnail}
+                                loading="lazy"
+                                alt={tutorial.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : isDirectVideo ? (
+                              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                <Video className="w-12 h-12 text-primary opacity-70" />
+                              </div>
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Video className="w-10 h-10 text-muted-foreground opacity-50" />
+                              </div>
+                            )}
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
                               <PlayCircle className="w-8 h-8 text-primary" />
@@ -268,9 +299,10 @@ const UserHelp: React.FC = () => {
                   </TabsList>
                   {topics.map(topic => (
                     <TabsContent key={topic} value={topic} className="mt-4">
-                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
                         {tutorialsByTopic[topic].map(tutorial => {
-                          const thumbnail = getYouTubeThumbnail(tutorial.videoUrl);
+                          const thumbnail = isYouTubeUrl(tutorial.videoUrl) ? getYouTubeThumbnail(tutorial.videoUrl) : null;
+                          const isDirectVideo = isDirectVideoUrl(tutorial.videoUrl);
                           const isWatched = isTutorialWatched(tutorial.id);
                           return (
                             <div
@@ -286,6 +318,10 @@ const UserHelp: React.FC = () => {
                                     alt={tutorial.title}
                                     className="w-full h-full object-cover"
                                   />
+                                ) : isDirectVideo ? (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                                    <Video className="w-12 h-12 text-primary opacity-70" />
+                                  </div>
                                 ) : (
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <Video className="w-10 h-10 text-muted-foreground opacity-50" />
@@ -440,8 +476,18 @@ const UserHelp: React.FC = () => {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="pr-8">{selectedVideo?.title}</DialogTitle>
           </DialogHeader>
-          <div className="relative aspect-video w-full">
-            {selectedVideo && (
+          <div className="relative aspect-video w-full bg-black">
+            {selectedVideo && isDirectVideoUrl(selectedVideo.videoUrl) ? (
+              <video
+                src={selectedVideo.videoUrl}
+                className="absolute inset-0 w-full h-full"
+                controls
+                autoPlay
+                playsInline
+              >
+                Your browser does not support the video tag.
+              </video>
+            ) : selectedVideo && isYouTubeUrl(selectedVideo.videoUrl) ? (
               <iframe
                 src={getYouTubeEmbedUrl(selectedVideo.videoUrl) || ''}
                 className="absolute inset-0 w-full h-full"
@@ -449,7 +495,14 @@ const UserHelp: React.FC = () => {
                 allowFullScreen
                 title={selectedVideo.title}
               />
-            )}
+            ) : selectedVideo ? (
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Unsupported video format</p>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="p-4 flex items-center justify-between gap-4">
             <div className="flex-1">

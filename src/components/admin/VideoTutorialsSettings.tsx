@@ -60,6 +60,14 @@ export const VideoTutorialsSettings: React.FC = () => {
     setTutorials(tutorials.filter(tutorial => tutorial.id !== id));
   };
 
+  // Check if URL is a direct video file (mp4, webm, etc.)
+  const isDirectVideoUrl = (url: string) => {
+    if (!url) return false;
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
+    const lowerUrl = url.toLowerCase();
+    return videoExtensions.some(ext => lowerUrl.includes(ext));
+  };
+
   const getYouTubeThumbnail = (url: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -212,7 +220,18 @@ export const VideoTutorialsSettings: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center justify-center">
-                      {thumbnail ? (
+                      {isDirectVideoUrl(tutorial.videoUrl) ? (
+                        <div className="relative w-full max-w-[280px] aspect-video rounded-lg overflow-hidden bg-black">
+                          <video
+                            src={tutorial.videoUrl}
+                            className="w-full h-full object-contain"
+                            controls
+                            preload="metadata"
+                          >
+                            Your browser does not support video.
+                          </video>
+                        </div>
+                      ) : thumbnail ? (
                         <div className="relative w-full max-w-[280px] aspect-video rounded-lg overflow-hidden group">
                           <img 
                             src={thumbnail} 
@@ -234,7 +253,7 @@ export const VideoTutorialsSettings: React.FC = () => {
                       ) : (
                         <div className="w-full max-w-[280px] aspect-video bg-muted/50 rounded-lg flex flex-col items-center justify-center text-muted-foreground">
                           <Video className="w-10 h-10 mb-2 opacity-50" />
-                          <p className="text-xs">Enter a YouTube URL to preview</p>
+                          <p className="text-xs">Enter a video URL to preview</p>
                         </div>
                       )}
                     </div>
