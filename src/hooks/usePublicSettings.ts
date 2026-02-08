@@ -31,6 +31,17 @@ export interface PublicSettings {
   storefront_contact_address: string;
   storefront_contact_whatsapp: string;
   storefront_business_hours: string;
+  // Help/FAQ + Tutorials
+  user_dashboard_video_url: string;
+  faq_items: Array<{ id?: string; question: string; answer: string }>;
+  video_tutorials: Array<{
+    id: string;
+    title: string;
+    description: string;
+    videoUrl: string;
+    topic: string;
+    sortOrder: number;
+  }>;
 }
 
 export const usePublicSettings = () => {
@@ -54,6 +65,9 @@ export const usePublicSettings = () => {
           'storefront_contact_address',
           'storefront_contact_whatsapp',
           'storefront_business_hours',
+          'user_dashboard_video_url',
+          'faq_items',
+          'video_tutorials',
         ]);
 
       if (error) {
@@ -64,7 +78,8 @@ export const usePublicSettings = () => {
       const settings: PublicSettings = {
         storefront_greeting_message: 'Welcome to our store! Browse our amazing products.',
         storefront_ordering_enabled: true,
-        storefront_ordering_disabled_message: 'Ordering is currently disabled. Please contact the store owner for assistance.',
+        storefront_ordering_disabled_message:
+          'Ordering is currently disabled. Please contact the store owner for assistance.',
         payout_enabled: true,
         payout_disabled_message: 'Payout requests are currently disabled. Please contact admin for assistance.',
         chat_greeting_message: 'Hello! How can I help you today?',
@@ -86,6 +101,9 @@ export const usePublicSettings = () => {
         storefront_contact_address: '',
         storefront_contact_whatsapp: '',
         storefront_business_hours: 'Mon - Sat: 9AM - 6PM',
+        user_dashboard_video_url: '',
+        faq_items: [],
+        video_tutorials: [],
       };
 
       data?.forEach((setting) => {
@@ -97,7 +115,8 @@ export const usePublicSettings = () => {
             settings.storefront_ordering_enabled = setting.value !== 'false';
             break;
           case 'storefront_ordering_disabled_message':
-            settings.storefront_ordering_disabled_message = setting.value || settings.storefront_ordering_disabled_message;
+            settings.storefront_ordering_disabled_message =
+              setting.value || settings.storefront_ordering_disabled_message;
             break;
           case 'payout_enabled':
             settings.payout_enabled = setting.value !== 'false';
@@ -137,6 +156,23 @@ export const usePublicSettings = () => {
           case 'storefront_business_hours':
             settings.storefront_business_hours = setting.value || settings.storefront_business_hours;
             break;
+          case 'user_dashboard_video_url':
+            settings.user_dashboard_video_url = setting.value || '';
+            break;
+          case 'faq_items':
+            try {
+              settings.faq_items = JSON.parse(setting.value) || [];
+            } catch {
+              settings.faq_items = [];
+            }
+            break;
+          case 'video_tutorials':
+            try {
+              settings.video_tutorials = JSON.parse(setting.value) || [];
+            } catch {
+              settings.video_tutorials = [];
+            }
+            break;
         }
       });
 
@@ -145,32 +181,38 @@ export const usePublicSettings = () => {
   });
 
   return {
-    settings: query.data || {
-      storefront_greeting_message: 'Welcome to our store! Browse our amazing products.',
-      storefront_ordering_enabled: true,
-      storefront_ordering_disabled_message: 'Ordering is currently disabled. Please contact the store owner for assistance.',
-      payout_enabled: true,
-      payout_disabled_message: 'Payout requests are currently disabled. Please contact admin for assistance.',
-      chat_greeting_message: 'Hello! How can I help you today?',
-      payout_methods_enabled: {
-        bank_transfer: true,
-        upi: true,
-        paypal: true,
-        crypto: true,
-      },
-      storefront_payment_icons: {
-        visa: true,
-        mastercard: true,
-        apple_pay: true,
-        paypal: true,
-        secure_checkout: true,
-      },
-      storefront_contact_email: 'support@store.com',
-      storefront_contact_phone: '+91 1234567890',
-      storefront_contact_address: '',
-      storefront_contact_whatsapp: '',
-      storefront_business_hours: 'Mon - Sat: 9AM - 6PM',
-    },
+    settings:
+      query.data ||
+      ({
+        storefront_greeting_message: 'Welcome to our store! Browse our amazing products.',
+        storefront_ordering_enabled: true,
+        storefront_ordering_disabled_message:
+          'Ordering is currently disabled. Please contact the store owner for assistance.',
+        payout_enabled: true,
+        payout_disabled_message: 'Payout requests are currently disabled. Please contact admin for assistance.',
+        chat_greeting_message: 'Hello! How can I help you today?',
+        payout_methods_enabled: {
+          bank_transfer: true,
+          upi: true,
+          paypal: true,
+          crypto: true,
+        },
+        storefront_payment_icons: {
+          visa: true,
+          mastercard: true,
+          apple_pay: true,
+          paypal: true,
+          secure_checkout: true,
+        },
+        storefront_contact_email: 'support@store.com',
+        storefront_contact_phone: '+91 1234567890',
+        storefront_contact_address: '',
+        storefront_contact_whatsapp: '',
+        storefront_business_hours: 'Mon - Sat: 9AM - 6PM',
+        user_dashboard_video_url: '',
+        faq_items: [],
+        video_tutorials: [],
+      } satisfies PublicSettings),
     isLoading: query.isLoading,
     error: query.error,
   };
