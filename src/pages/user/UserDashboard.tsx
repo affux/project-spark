@@ -631,27 +631,27 @@ const UserDashboard: React.FC = () => {
               )}
             </div>
             {selectedVideo && (
-              <Button
-                variant={isTutorialWatched(selectedVideo.id) ? 'secondary' : 'default'}
-                size="sm"
-                onClick={() => {
-                  markAsWatched(selectedVideo.id);
-                }}
-                disabled={isTutorialWatched(selectedVideo.id)}
-                className="shrink-0"
-              >
-                {isTutorialWatched(selectedVideo.id) ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
+              <div className="flex items-center gap-2">
+                {isTutorialWatched(selectedVideo.id) && (
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle className="w-3 h-3" />
                     Completed
-                  </>
-                ) : (
-                  <>
+                  </Badge>
+                )}
+                {!isTutorialWatched(selectedVideo.id) && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      markAsWatched(selectedVideo.id);
+                    }}
+                    className="shrink-0"
+                  >
                     <Circle className="w-4 h-4 mr-2" />
                     Mark as Watched
-                  </>
+                  </Button>
                 )}
-              </Button>
+              </div>
             )}
           </div>
         </DialogContent>
