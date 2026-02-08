@@ -24,6 +24,7 @@ import {
   LayoutGrid,
   List,
   Activity,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -51,6 +52,7 @@ const adminNavItems: NavItem[] = [
   { icon: Globe, label: 'IP Logs', href: '/admin/ip-logs' },
   { icon: MessageCircle, label: 'Chat', href: '/admin/chat' },
   { icon: Briefcase, label: 'Workspace', href: '/admin/workspace' },
+  { icon: Video, label: 'Videos', href: '/admin/videos' },
   { icon: FileText, label: 'Reports', href: '/admin/reports' },
   { icon: Activity, label: 'Health Check', href: '/admin/health-check' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },

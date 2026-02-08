@@ -91,9 +91,6 @@ import { AutoPayoutSettings } from '@/components/admin/AutoPayoutSettings';
 import PayoutMethodSettings from '@/components/admin/PayoutMethodSettings';
 import { CustomPaymentMethodsManager } from '@/components/admin/CustomPaymentMethodsManager';
 import { FAQSettings } from '@/components/admin/FAQSettings';
-import { VideoTutorialsSettings } from '@/components/admin/VideoTutorialsSettings';
-import { TutorialCompletionViewer } from '@/components/admin/TutorialCompletionViewer';
-import { VideoSettings } from '@/components/admin/VideoSettings';
 import { StorefrontSettings } from '@/components/admin/StorefrontSettings';
 import { PaymentIconSettings } from '@/components/admin/PaymentIconSettings';
 import { MFASettings } from '@/components/mfa/MFASettings';
@@ -1972,17 +1969,8 @@ const AdminSettings: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Video Settings */}
-        <VideoSettings />
-
         {/* FAQ Settings */}
         <FAQSettings />
-
-        {/* Video Tutorials Settings */}
-        <VideoTutorialsSettings />
-
-        {/* Tutorial Completion Viewer */}
-        <TutorialCompletionViewer />
 
         {/* Storefront Settings */}
         <StorefrontSettings />
