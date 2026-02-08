@@ -24,6 +24,7 @@ const UserHelp: React.FC = () => {
   const { isTutorialWatched, markAsWatched, watchedCount, getProgress } = useVideoTutorialProgress();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
+  const [videoLoadErrorUrl, setVideoLoadErrorUrl] = useState<string | null>(null);
 
   const faqItems = publicSettings.faq_items || [];
   const videoTutorials = publicSettings.video_tutorials || [];
@@ -472,22 +473,45 @@ const UserHelp: React.FC = () => {
       </div>
 
       {/* Video Player Dialog */}
-      <Dialog open={!!selectedVideo} onOpenChange={(open) => !open && setSelectedVideo(null)}>
+      <Dialog
+        open={!!selectedVideo}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedVideo(null);
+            setVideoLoadErrorUrl(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="pr-8">{selectedVideo?.title}</DialogTitle>
           </DialogHeader>
           <div className="relative aspect-video w-full bg-black">
             {selectedVideo && isDirectVideoUrl(selectedVideo.videoUrl) ? (
-              <video
-                src={selectedVideo.videoUrl}
-                className="absolute inset-0 w-full h-full"
-                controls
-                autoPlay
-                playsInline
-              >
-                Your browser does not support the video tag.
-              </video>
+              videoLoadErrorUrl === selectedVideo.videoUrl ? (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center space-y-3 px-6">
+                    <Video className="w-12 h-12 mx-auto opacity-50" />
+                    <p className="text-sm">This video can’t be played in the app.</p>
+                    <Button asChild variant="secondary" size="sm">
+                      <a href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
+                        Open video in new tab
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <video
+                  src={selectedVideo.videoUrl}
+                  className="absolute inset-0 w-full h-full"
+                  controls
+                  autoPlay
+                  playsInline
+                  onError={() => setVideoLoadErrorUrl(selectedVideo.videoUrl)}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )
             ) : selectedVideo && isYouTubeUrl(selectedVideo.videoUrl) ? (
               <iframe
                 src={getYouTubeEmbedUrl(selectedVideo.videoUrl) || ''}
@@ -508,9 +532,7 @@ const UserHelp: React.FC = () => {
           <div className="p-4 flex items-center justify-between gap-4">
             <div className="flex-1">
               {selectedVideo?.description && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedVideo.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{selectedVideo.description}</p>
               )}
             </div>
             {selectedVideo && (
