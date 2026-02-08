@@ -194,7 +194,7 @@ export const AdminMediaUploader: React.FC<AdminMediaUploaderProps> = ({
               {accept === 'images' && 'JPEG, PNG, GIF, WebP'}
               {accept === 'videos' && 'MP4, WebM'}
               {accept === 'all' && 'Images & Videos'}
-              {' • Max 10MB'}
+              {' • Max 50MB'}
             </p>
           </>
         )}
