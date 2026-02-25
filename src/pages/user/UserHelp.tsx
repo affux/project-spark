@@ -486,13 +486,13 @@ const UserHelp: React.FC = () => {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="pr-8">{selectedVideo?.title}</DialogTitle>
           </DialogHeader>
-          <div className="relative aspect-video w-full bg-black">
+          <div className="relative aspect-video w-full bg-black rounded-b-none">
             {selectedVideo && isDirectVideoUrl(selectedVideo.videoUrl) ? (
               videoLoadErrorUrl === selectedVideo.videoUrl ? (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="text-center space-y-3 px-6">
-                    <Video className="w-12 h-12 mx-auto opacity-50" />
-                    <p className="text-sm">This video can’t be played in the app.</p>
+                    <Video className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
+                    <p className="text-sm text-foreground">This video can't be played in the app.</p>
                     <Button asChild variant="secondary" size="sm">
                       <a href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
                         Open video in new tab
@@ -503,10 +503,11 @@ const UserHelp: React.FC = () => {
               ) : (
                 <video
                   src={selectedVideo.videoUrl}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 w-full h-full object-contain"
                   controls
                   autoPlay
                   playsInline
+                  crossOrigin="anonymous"
                   onError={() => setVideoLoadErrorUrl(selectedVideo.videoUrl)}
                 >
                   Your browser does not support the video tag.
@@ -521,10 +522,10 @@ const UserHelp: React.FC = () => {
                 title={selectedVideo.title}
               />
             ) : selectedVideo ? (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <div className="text-center">
-                  <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>Unsupported video format</p>
+                  <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-50" />
+                  <p className="text-foreground">Unsupported video format</p>
                 </div>
               </div>
             ) : null}

@@ -589,13 +589,13 @@ const UserDashboard: React.FC = () => {
             <DialogTitle className="pr-8">{selectedVideo?.title}</DialogTitle>
           </DialogHeader>
 
-          <div className="relative aspect-video w-full bg-black">
+          <div className="relative aspect-video w-full bg-black rounded-b-none">
             {selectedVideo ? (
               videoLoadErrorUrl === selectedVideo.videoUrl ? (
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="text-center space-y-3 px-6">
-                    <Video className="w-12 h-12 mx-auto opacity-50" />
-                    <p className="text-sm">This video can’t be played in the app.</p>
+                    <Video className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
+                    <p className="text-sm text-foreground">This video can't be played in the app.</p>
                     <Button asChild variant="secondary" size="sm">
                       <a href={selectedVideo.videoUrl} target="_blank" rel="noreferrer">
                         Open video in new tab
@@ -614,12 +614,15 @@ const UserDashboard: React.FC = () => {
               ) : (
                 <video
                   src={selectedVideo.videoUrl}
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 w-full h-full object-contain"
                   controls
                   autoPlay
                   playsInline
+                  crossOrigin="anonymous"
                   onError={() => setVideoLoadErrorUrl(selectedVideo.videoUrl)}
-                />
+                >
+                  Your browser does not support the video tag.
+                </video>
               )
             ) : null}
           </div>
