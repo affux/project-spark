@@ -507,7 +507,6 @@ const UserHelp: React.FC = () => {
                   controls
                   autoPlay
                   playsInline
-                  crossOrigin="anonymous"
                   onError={() => setVideoLoadErrorUrl(selectedVideo.videoUrl)}
                 >
                   Your browser does not support the video tag.
