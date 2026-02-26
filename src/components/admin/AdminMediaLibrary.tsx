@@ -73,6 +73,11 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Strip timestamp prefix (e.g. "1772027837983-") to show clean filename
+  const getDisplayName = (filename: string) => {
+    return filename.replace(/^\d+-/, '');
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -182,7 +187,7 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
 
                       {/* Info */}
                       <div className="p-2 bg-background/80">
-                        <p className="text-xs font-medium truncate">{item.name}</p>
+                        <p className="text-xs font-medium truncate" title={item.name}>{getDisplayName(item.name)}</p>
                         <p className="text-xs text-muted-foreground">{formatFileSize(item.size)}</p>
                       </div>
                     </div>
