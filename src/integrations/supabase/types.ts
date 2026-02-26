@@ -2168,6 +2168,10 @@ export type Database = {
         }
         Returns: string
       }
+      permanently_delete_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       process_postpaid_payment: {
         Args: { _amount: number; _order_id: string; _user_id: string }
         Returns: Json
