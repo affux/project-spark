@@ -11,22 +11,16 @@ export const useEmailMFA = () => {
   const sendEmailCode = useCallback(async (userId: string, email: string): Promise<{ success: boolean; error?: string }> => {
     setIsSendingCode(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-mfa-email/send`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ userId, email }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('send-mfa-email', {
+        body: { userId, email },
+      });
 
-      const data = await response.json();
+      if (error) {
+        throw new Error(error.message || 'Failed to send verification code');
+      }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send verification code');
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       setCodeSent(true);
@@ -52,22 +46,16 @@ export const useEmailMFA = () => {
   const verifyEmailCode = useCallback(async (userId: string, code: string): Promise<{ success: boolean; error?: string }> => {
     setIsVerifyingCode(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-mfa-email/verify`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ userId, code }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('send-mfa-email', {
+        body: { userId, code },
+      });
 
-      const data = await response.json();
+      if (error) {
+        throw new Error(error.message || 'Invalid verification code');
+      }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Invalid verification code');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Invalid verification code');
       }
 
       setCodeSent(false);

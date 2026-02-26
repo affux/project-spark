@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,9 +15,28 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
-    // First check if admin already exists
+    // Check platform_settings for setup completion flag FIRST
+    const { data: setupFlag } = await supabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'admin_setup_completed')
+      .single();
+
+    if (setupFlag?.value === 'true') {
+      return new Response(
+        JSON.stringify({ error: 'Admin setup has already been completed' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    // Check if admin already exists in user_roles
     const { data: existingAdmins, error: checkError } = await supabase
       .from('user_roles')
       .select('id')
@@ -31,6 +49,15 @@ serve(async (req) => {
     }
 
     if (existingAdmins && existingAdmins.length > 0) {
+      // Mark setup as completed since admin exists
+      await supabase
+        .from('platform_settings')
+        .upsert({ 
+          key: 'admin_setup_completed', 
+          value: 'true',
+          description: 'Flag indicating first admin setup is complete'
+        }, { onConflict: 'key' });
+
       return new Response(
         JSON.stringify({ error: 'An admin account already exists' }),
         { 
@@ -41,7 +68,21 @@ serve(async (req) => {
     }
 
     // Get request body
-    const { email, password, name } = await req.json();
+    const { email, password, name, setupSecret } = await req.json();
+
+    // Validate setup secret if configured
+    const expectedSecret = Deno.env.get('SETUP_SECRET');
+    if (expectedSecret && expectedSecret.length > 0) {
+      if (!setupSecret || setupSecret !== expectedSecret) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid setup secret. Please provide the correct setup secret.' }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 403 
+          }
+        );
+      }
+    }
 
     if (!email || !password || !name) {
       return new Response(
@@ -71,8 +112,7 @@ serve(async (req) => {
     const userId = authData.user.id;
     console.log('Auth user created:', userId);
 
-    // The trigger should have created the profile and user role, 
-    // but we need to update the role to admin
+    // Update the role to admin
     const { error: roleUpdateError } = await supabase
       .from('user_roles')
       .update({ role: 'admin' })
@@ -80,7 +120,6 @@ serve(async (req) => {
 
     if (roleUpdateError) {
       console.error('Error updating role to admin:', roleUpdateError);
-      // Try to insert if update failed (in case trigger didn't create the role)
       const { error: roleInsertError } = await supabase
         .from('user_roles')
         .upsert({ user_id: userId, role: 'admin' }, { onConflict: 'user_id' });
@@ -102,8 +141,16 @@ serve(async (req) => {
 
     if (profileError) {
       console.error('Error updating profile:', profileError);
-      // Non-fatal, continue
     }
+
+    // Mark setup as completed to permanently disable this endpoint
+    await supabase
+      .from('platform_settings')
+      .upsert({ 
+        key: 'admin_setup_completed', 
+        value: 'true',
+        description: 'Flag indicating first admin setup is complete'
+      }, { onConflict: 'key' });
 
     console.log('Admin user created successfully:', userId);
 
