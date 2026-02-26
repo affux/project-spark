@@ -53,12 +53,14 @@ const UserHelp: React.FC = () => {
 
   const topics = Object.keys(tutorialsByTopic).sort();
 
-  // Check if URL is a direct video file (mp4, webm, etc.)
+  // Check if URL is a direct video (any valid URL that's not YouTube/Vimeo)
   const isDirectVideoUrl = (url: string) => {
     if (!url) return false;
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
     const lowerUrl = url.toLowerCase();
-    return videoExtensions.some(ext => lowerUrl.includes(ext));
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || lowerUrl.includes('vimeo.com')) {
+      return false;
+    }
+    return lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://');
   };
 
   // Check if URL is a YouTube video
