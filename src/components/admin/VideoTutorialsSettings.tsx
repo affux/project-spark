@@ -60,12 +60,16 @@ export const VideoTutorialsSettings: React.FC = () => {
     setTutorials(tutorials.filter(tutorial => tutorial.id !== id));
   };
 
-  // Check if URL is a direct video file (mp4, webm, etc.)
+  // Check if URL is a direct video (not YouTube/Vimeo)
   const isDirectVideoUrl = (url: string) => {
     if (!url) return false;
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov'];
     const lowerUrl = url.toLowerCase();
-    return videoExtensions.some(ext => lowerUrl.includes(ext));
+    // If it's YouTube or Vimeo, it's not a direct video
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be') || lowerUrl.includes('vimeo.com')) {
+      return false;
+    }
+    // Any other valid URL is treated as a direct video (storage URLs, etc.)
+    return lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://');
   };
 
   const getYouTubeThumbnail = (url: string) => {
