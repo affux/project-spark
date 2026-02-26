@@ -517,6 +517,14 @@ const UserDashboard: React.FC = () => {
                               alt={tutorial.title}
                               className="w-full h-full object-cover"
                             />
+                          ) : tutorial.videoUrl && !tutorial.videoUrl.includes('youtube.com') && !tutorial.videoUrl.includes('youtu.be') && !tutorial.videoUrl.includes('vimeo.com') ? (
+                            <video
+                              src={tutorial.videoUrl}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center">
                               <Video className="w-8 h-8 text-muted-foreground opacity-50" />

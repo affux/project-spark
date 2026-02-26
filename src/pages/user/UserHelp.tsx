@@ -251,9 +251,13 @@ const UserHelp: React.FC = () => {
                                 className="w-full h-full object-cover"
                               />
                             ) : isDirectVideo ? (
-                              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                                <Video className="w-12 h-12 text-primary opacity-70" />
-                              </div>
+                              <video
+                                src={tutorial.videoUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
                             ) : (
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <Video className="w-10 h-10 text-muted-foreground opacity-50" />
@@ -323,9 +327,13 @@ const UserHelp: React.FC = () => {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : isDirectVideo ? (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                                    <Video className="w-12 h-12 text-primary opacity-70" />
-                                  </div>
+                                  <video
+                                    src={tutorial.videoUrl}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                  />
                                 ) : (
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <Video className="w-10 h-10 text-muted-foreground opacity-50" />
