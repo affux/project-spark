@@ -35,9 +35,9 @@ export const useAdminMediaUpload = () => {
         throw new Error('File too large. Maximum size is 50MB');
       }
 
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Generate unique filename while preserving original name
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileName = `${folder}/${Date.now()}-${sanitizedName}`;
 
       setUploadProgress(25);
 
