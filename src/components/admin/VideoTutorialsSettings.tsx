@@ -50,10 +50,31 @@ export const VideoTutorialsSettings: React.FC = () => {
     setTutorials([...tutorials, newTutorial]);
   };
 
+  const extractFilenameFromUrl = (url: string): string => {
+    try {
+      const pathname = new URL(url).pathname;
+      const filename = pathname.split('/').pop() || '';
+      // Remove timestamp prefix (e.g., "1772027837983-") and extension
+      const withoutTimestamp = filename.replace(/^\d+-/, '');
+      const withoutExt = withoutTimestamp.replace(/\.[^/.]+$/, '');
+      // Replace underscores with spaces for readability
+      return withoutExt.replace(/_/g, ' ');
+    } catch {
+      return '';
+    }
+  };
+
   const updateTutorial = (id: string, field: keyof VideoTutorial, value: string | number) => {
-    setTutorials(tutorials.map(tutorial => 
-      tutorial.id === id ? { ...tutorial, [field]: value } : tutorial
-    ));
+    setTutorials(prev => prev.map(tutorial => {
+      if (tutorial.id !== id) return tutorial;
+      const updated = { ...tutorial, [field]: value };
+      // Auto-fill title from URL if title is empty
+      if (field === 'videoUrl' && !tutorial.title && typeof value === 'string') {
+        const extracted = extractFilenameFromUrl(value);
+        if (extracted) updated.title = extracted;
+      }
+      return updated;
+    }));
   };
 
   const removeTutorial = (id: string) => {
