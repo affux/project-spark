@@ -11,12 +11,21 @@ export interface IPInfo {
 
 let cachedIPInfo: IPInfo | null = null;
 
-// Fetch client IP from backend (reliable, no 3rd-party IP services)
-export const getClientIPInfo = async (): Promise<IPInfo | null> => {
+// Fetch client IP from backend with timeout to prevent login blocking
+export const getClientIPInfo = async (timeoutMs: number = 3000): Promise<IPInfo | null> => {
   if (cachedIPInfo) return cachedIPInfo;
 
   try {
-    const { data, error } = await supabase.functions.invoke('get-client-ip');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const { data, error } = await supabase.functions.invoke('get-client-ip', {
+      body: {},
+      headers: {},
+    });
+
+    clearTimeout(timeoutId);
+
     if (error) {
       console.warn('Failed to get client IP:', error.message);
       return null;
@@ -34,7 +43,7 @@ export const getClientIPInfo = async (): Promise<IPInfo | null> => {
 
     return cachedIPInfo;
   } catch (e) {
-    console.warn('Failed to get client IP:', e);
+    console.warn('Failed to get client IP (timeout or network error):', e);
     return null;
   }
 };

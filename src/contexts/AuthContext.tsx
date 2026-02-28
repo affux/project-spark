@@ -297,58 +297,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: false, error: 'Your account has been deactivated. Please contact admin.' };
         }
 
-        // Get current IP info for new location detection
-        const ipInfo = await getClientIPInfo();
-        
-        // Check if this is a new location by comparing with previous IPs
-        let isNewLocation = false;
-        if (ipInfo?.ip) {
-          const { data: previousIPs } = await supabase
-            .from('ip_logs')
-            .select('ip_address')
-            .eq('user_id', data.user.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-          
-          if (previousIPs && previousIPs.length > 0) {
-            const knownIPs = new Set(previousIPs.map(log => log.ip_address));
-            isNewLocation = !knownIPs.has(ipInfo.ip);
-          }
-        }
-
-        // Log IP address on login (best effort - won't fail login if it fails)
-        logIPAction(data.user.id, 'login').then(() => {
-          supabase
-            .from('profiles')
-            .update({ last_login_at: new Date().toISOString() })
-            .eq('user_id', data.user.id);
-        });
-
-        // Send login alert email for new location (non-blocking)
-        if (ipInfo?.ip) {
-          const shouldSendAlert = isNewLocation; // Only send for new locations
-          if (shouldSendAlert) {
-            fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-login-alert`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-              },
-              body: JSON.stringify({
-                userId: data.user.id,
-                email: userProfile.email,
-                userName: userProfile.name,
-                ipAddress: ipInfo.ip,
-                city: ipInfo.city,
-                region: ipInfo.region,
-                country: ipInfo.country,
-                isNewLocation: true,
-              }),
-            }).catch(err => console.error('Failed to send login alert:', err));
-          }
-        }
-
+        // Set user immediately so login is not blocked by IP/alert operations
         setUser(userProfile);
+
+        // Non-blocking: IP logging, location detection, and login alerts
+        // These run in background and won't block the login flow
+        (async () => {
+          try {
+            const ipInfo = await getClientIPInfo(3000);
+            
+            // Update last login timestamp
+            supabase
+              .from('profiles')
+              .update({ last_login_at: new Date().toISOString() })
+              .eq('user_id', data.user.id);
+            
+            // Log IP (best effort)
+            logIPAction(data.user.id, 'login');
+
+            // Check for new location and send alert
+            if (ipInfo?.ip) {
+              const { data: previousIPs } = await supabase
+                .from('ip_logs')
+                .select('ip_address')
+                .eq('user_id', data.user.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+              
+              const isNewLocation = previousIPs && previousIPs.length > 0
+                ? !new Set(previousIPs.map(log => log.ip_address)).has(ipInfo.ip)
+                : false;
+
+              if (isNewLocation) {
+                fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-login-alert`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    userId: data.user.id,
+                    email: userProfile.email,
+                    userName: userProfile.name,
+                    ipAddress: ipInfo.ip,
+                    city: ipInfo.city,
+                    region: ipInfo.region,
+                    country: ipInfo.country,
+                    isNewLocation: true,
+                  }),
+                }).catch(err => console.error('Failed to send login alert:', err));
+              }
+            }
+          } catch (err) {
+            console.warn('Background login tasks failed:', err);
+          }
+        })();
+
         return { success: true, userId: data.user.id };
       }
 
