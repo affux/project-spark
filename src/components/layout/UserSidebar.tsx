@@ -20,6 +20,7 @@ import {
   Briefcase,
   LayoutGrid,
   List,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CURRENCY_SYMBOLS } from '@/hooks/usePlatformSettings';
@@ -45,6 +46,7 @@ const userNavItems: NavItem[] = [
   { icon: Briefcase, label: 'Workspace', href: '/dashboard/workspace' },
   { icon: Shield, label: 'KYC Verification', href: '/dashboard/kyc' },
   { icon: MessageCircle, label: 'Chat Support', href: '/dashboard/chat' },
+  { icon: Video, label: 'Tutorials', href: '/dashboard/tutorials' },
   { icon: HelpCircle, label: 'FAQ & Help', href: '/dashboard/help' },
   { icon: LifeBuoy, label: 'Raise Ticket', href: '/dashboard/support' },
 ];
