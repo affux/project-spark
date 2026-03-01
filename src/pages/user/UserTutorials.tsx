@@ -203,9 +203,14 @@ const UserTutorials: React.FC = () => {
                         size="sm"
                         variant={isActive ? "default" : "outline"}
                         className="gap-1 hidden sm:flex"
+                        disabled={tutorials.length > 0 && watchedInStep < tutorials.length}
                         onClick={(e) => { e.stopPropagation(); navigate(step.route); }}
                       >
-                        Go <ArrowRight className="w-3 h-3" />
+                        {tutorials.length > 0 && watchedInStep < tutorials.length ? (
+                          <><Lock className="w-3 h-3" /> Watch First</>
+                        ) : (
+                          <>Go <ArrowRight className="w-3 h-3" /></>
+                        )}
                       </Button>
                     )}
                     <ChevronRight className={cn(
@@ -270,12 +275,22 @@ const UserTutorials: React.FC = () => {
                     </div>
                     <Button
                       className="mt-3 w-full gap-2"
-                      variant="outline"
+                      variant={complete ? "outline" : "default"}
+                      disabled={!complete && tutorials.length > 0 && watchedInStep < tutorials.length}
                       onClick={() => navigate(step.route)}
                     >
                       <Icon className="w-4 h-4" />
-                      Go to {step.label}
-                      <ArrowRight className="w-4 h-4 ml-auto" />
+                      {!complete && tutorials.length > 0 && watchedInStep < tutorials.length ? (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          Watch all videos to unlock
+                        </>
+                      ) : (
+                        <>
+                          Go to {step.label}
+                          <ArrowRight className="w-4 h-4 ml-auto" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
