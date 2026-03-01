@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlayCircle, Video, CheckCircle, Circle, X } from 'lucide-react';
+import { PlayCircle, Video, CheckCircle, Circle, X, Shield, Store, Briefcase, ShoppingCart, Wallet } from 'lucide-react';
 import { VideoTutorial } from '@/hooks/usePlatformSettings';
 import { useVideoTutorialProgress } from '@/hooks/useVideoTutorialProgress';
 import { usePublicSettings } from '@/hooks/usePublicSettings';
@@ -12,8 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TutorialAchievements } from '@/components/user/TutorialAchievements';
+import { cn } from '@/lib/utils';
+
+const quickNavSteps = [
+  { label: 'COMPLETE YOUR KYC', icon: Shield, route: '/dashboard/kyc' },
+  { label: 'CREATE YOUR STORE FRONT', icon: Store, route: '/dashboard/storefront' },
+  { label: 'COMPLETE YOUR WORK SPACE', icon: Briefcase, route: '/dashboard/workspace' },
+  { label: 'HOW TO COMPLETE THE ORDER', icon: ShoppingCart, route: '/dashboard/orders' },
+  { label: 'HOW TO RISE PAYOUT REQUEST', icon: Wallet, route: '/dashboard/payments' },
+];
 
 const UserTutorials: React.FC = () => {
+  const navigate = useNavigate();
   const { settings: publicSettings, isLoading } = usePublicSettings();
   const { isTutorialWatched, markAsWatched, watchedCount, getProgress } = useVideoTutorialProgress();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -140,6 +151,27 @@ const UserTutorials: React.FC = () => {
           <p className="text-muted-foreground mt-1">
             Step-by-step video guides to help you use the platform effectively.
           </p>
+        </div>
+
+        {/* Quick Navigation Steps */}
+        <div className="bg-muted/50 rounded-xl p-3">
+          <div className="flex flex-wrap justify-center gap-2">
+            {quickNavSteps.map((step, index) => (
+              <button
+                key={step.label}
+                onClick={() => navigate(step.route)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all",
+                  "bg-background hover:bg-primary hover:text-primary-foreground",
+                  "border border-border hover:border-primary",
+                  "shadow-sm hover:shadow-md"
+                )}
+              >
+                <span>{index + 1}.</span>
+                {step.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Getting Started Video */}
