@@ -188,7 +188,7 @@ const GlobalTrackingInitializer = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="trading" enableSystem={false} themes={['light', 'dark', 'trading', 'blue', 'green', 'purple', 'custom']}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} themes={['light', 'dark', 'trading', 'blue', 'green', 'purple', 'custom']}>
       <LanguageProvider>
         <AuthProvider>
           <TooltipProvider>
