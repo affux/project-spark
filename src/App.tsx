@@ -48,6 +48,7 @@ import UserProfile from "./pages/user/UserProfile";
 import UserChat from "./pages/user/UserChat";
 import UserAI from "./pages/user/UserAI";
 import UserHelp from "./pages/user/UserHelp";
+import UserTutorials from "./pages/user/UserTutorials";
 import UserWorkspace from "./pages/user/UserWorkspace";
 
 
@@ -156,6 +157,7 @@ const AppRoutes = () => {
       <Route path="/dashboard/profile" element={<ProtectedRoute allowedRoles={['user']}><UserProfile /></ProtectedRoute>} />
       <Route path="/dashboard/chat" element={<ProtectedRoute allowedRoles={['user']}><UserChat /></ProtectedRoute>} />
       <Route path="/dashboard/ai" element={<ProtectedRoute allowedRoles={['user']}><UserAI /></ProtectedRoute>} />
+      <Route path="/dashboard/tutorials" element={<ProtectedRoute allowedRoles={['user']}><UserTutorials /></ProtectedRoute>} />
       <Route path="/dashboard/help" element={<ProtectedRoute allowedRoles={['user','admin']}><UserHelp /></ProtectedRoute>} />
       <Route path="/dashboard/workspace" element={<ProtectedRoute allowedRoles={['user']}><UserWorkspace /></ProtectedRoute>} />
       

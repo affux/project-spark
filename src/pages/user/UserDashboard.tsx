@@ -482,7 +482,7 @@ const UserDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Tutorial Achievements */}
+          {/* Tutorial Quick Link */}
           {videoTutorials.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
@@ -500,70 +500,15 @@ const UserDashboard: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {videoTutorials.slice(0, 8).map((tutorial) => {
-                    const thumbnail = getYouTubeThumbnail(tutorial.videoUrl);
-                    const isWatched = isTutorialWatched(tutorial.id);
-                    return (
-                      <div
-                        key={tutorial.id}
-                        className={`group border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer ${isWatched ? 'border-green-500/50 bg-green-500/5' : ''}`}
-                        onClick={() => setSelectedVideo(tutorial)}
-                      >
-                        <div className="relative aspect-video bg-muted">
-                          {thumbnail ? (
-                            <img
-                              src={thumbnail}
-                              alt={tutorial.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : tutorial.videoUrl && !tutorial.videoUrl.includes('youtube.com') && !tutorial.videoUrl.includes('youtu.be') && !tutorial.videoUrl.includes('vimeo.com') ? (
-                            <video
-                              src={tutorial.videoUrl}
-                              className="w-full h-full object-cover"
-                              muted
-                              playsInline
-                              preload="metadata"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Video className="w-8 h-8 text-muted-foreground opacity-50" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                              <PlayCircle className="w-6 h-6 text-primary" />
-                            </div>
-                          </div>
-                          {isWatched ? (
-                            <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                              <CheckCircle className="w-3 h-3 text-white" />
-                            </div>
-                          ) : (
-                            <Badge variant="secondary" className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5">
-                              {tutorial.topic}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="p-2">
-                          <div className="flex items-center gap-1">
-                            {isWatched ? (
-                              <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />
-                            ) : (
-                              <Circle className="w-3 h-3 text-muted-foreground shrink-0" />
-                            )}
-                            <h4 className="font-medium text-xs line-clamp-1">{tutorial.title}</h4>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {videoTutorials.length > 8 && (
-                  <Button variant="ghost" size="sm" className="w-full mt-3" asChild>
-                    <Link to="/dashboard/help">View all tutorials →</Link>
-                  </Button>
-                )}
+                <p className="text-sm text-muted-foreground mb-3">
+                  {watchedCount}/{videoTutorials.length} tutorials completed. Keep learning to unlock all achievements!
+                </p>
+                <Button variant="outline" size="sm" className="gap-2" asChild>
+                  <Link to="/dashboard/tutorials">
+                    <PlayCircle className="w-4 h-4" />
+                    Go to Tutorials
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           )}
