@@ -27,7 +27,7 @@ const UserTutorials: React.FC = () => {
   const { isTutorialWatched, markAsWatched, watchedCount, getProgress } = useVideoTutorialProgress();
   const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
   const [videoLoadErrorUrl, setVideoLoadErrorUrl] = useState<string | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
 
   const videoTutorials = publicSettings.video_tutorials || [];
   const progressPercentage = getProgress(videoTutorials.length);
@@ -54,6 +54,13 @@ const UserTutorials: React.FC = () => {
     }
     return 0;
   }, [stepTutorialMap, isTutorialWatched]);
+
+  // Auto-expand the first incomplete step on load
+  React.useEffect(() => {
+    if (activeStep === null) {
+      setActiveStep(firstIncompleteStep);
+    }
+  }, [firstIncompleteStep]);
 
   const isStepComplete = (index: number) => {
     const tutorials = stepTutorialMap[index] || [];
@@ -136,6 +143,7 @@ const UserTutorials: React.FC = () => {
             const isActive = index === firstIncompleteStep;
             const tutorials = stepTutorialMap[index] || [];
             const watchedInStep = tutorials.filter(t => isTutorialWatched(t.id)).length;
+            const isExpanded = activeStep === index;
 
             return (
               <Card
@@ -149,7 +157,7 @@ const UserTutorials: React.FC = () => {
               >
                 <div
                   className="flex items-center gap-4 p-4 cursor-pointer"
-                  onClick={() => setActiveStep(activeStep === index ? -1 : index)}
+                  onClick={() => setActiveStep(isExpanded ? -1 : index)}
                 >
                   {/* Step number / status */}
                   <div className={cn(
@@ -202,13 +210,13 @@ const UserTutorials: React.FC = () => {
                     )}
                     <ChevronRight className={cn(
                       "w-5 h-5 text-muted-foreground transition-transform",
-                      activeStep === index && "rotate-90"
+                      isExpanded && "rotate-90"
                     )} />
                   </div>
                 </div>
 
-                {/* Expanded tutorials for this step */}
-                {activeStep === index && tutorials.length > 0 && (
+                {/* Always show tutorials for the active (next incomplete) step */}
+                {(isExpanded || isActive) && tutorials.length > 0 && (
                   <div className="border-t bg-muted/30 p-4">
                     <div className="grid sm:grid-cols-2 gap-3">
                       {tutorials.map((tutorial) => {
@@ -273,7 +281,7 @@ const UserTutorials: React.FC = () => {
                 )}
 
                 {/* Show "Go" button for steps without tutorials */}
-                {activeStep === index && tutorials.length === 0 && (
+                {isExpanded && tutorials.length === 0 && (
                   <div className="border-t bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground mb-3">No tutorial video yet for this step. Navigate to the section to get started.</p>
                     <Button
