@@ -54,9 +54,11 @@ export const usePostpaid = () => {
         .single();
 
       if (error) {
-        console.error('Error fetching postpaid status:', error);
+        console.error('[POSTPAID STATUS] Error fetching postpaid status:', error);
         throw error;
       }
+
+      console.log('[POSTPAID STATUS] Profile data:', data);
 
       const profile = data as PostpaidProfile;
       // Available credit is based on credit limit minus used, regardless of enabled status
