@@ -255,6 +255,14 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => handleDownload(previewMedia)}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleCopyUrl(previewMedia.url)}
                   >
                     {copiedUrl === previewMedia.url ? (
