@@ -67,6 +67,22 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
     setTimeout(() => setCopiedUrl(null), 2000);
   };
 
+  const handleDownload = async (item: UploadedMedia) => {
+    try {
+      const response = await fetch(item.url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = item.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch {
+      window.open(item.url, '_blank');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
