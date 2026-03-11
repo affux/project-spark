@@ -388,12 +388,23 @@ const UserOrders: React.FC = () => {
 
     setIsProcessing(true);
     try {
+      console.log('[POSTPAID] Starting postpaid payment:', {
+        userId: user.id,
+        orderId: selectedOrder.id,
+        orderNumber: selectedOrder.order_number,
+        orderAmount,
+        availableCredit: postpaidStatus.availableCredit,
+        creditLimit: postpaidStatus.creditLimit,
+      });
+      
       // Use the secure database function to process postpaid payment
       const { data, error } = await supabase.rpc('process_postpaid_payment', {
         _user_id: user.id,
         _order_id: selectedOrder.id,
         _amount: orderAmount,
       });
+
+      console.log('[POSTPAID] RPC response:', { data, error });
 
       if (error) throw error;
 
