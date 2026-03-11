@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, Video, Trash2, Copy, Check, Loader2, FolderOpen, X } from 'lucide-react';
+import { Image, Video, Trash2, Copy, Check, Loader2, FolderOpen, X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -65,6 +65,22 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(null), 2000);
+  };
+
+  const handleDownload = async (item: UploadedMedia) => {
+    try {
+      const response = await fetch(item.url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = item.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch {
+      window.open(item.url, '_blank');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -161,6 +177,17 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
                               className="h-8 w-8"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                handleDownload(item);
+                              }}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleCopyUrl(item.url);
                               }}
                             >
@@ -225,6 +252,14 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
                   {formatFileSize(previewMedia.size)}
                 </p>
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(previewMedia)}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
