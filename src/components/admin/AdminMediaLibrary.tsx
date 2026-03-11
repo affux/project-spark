@@ -177,6 +177,17 @@ export const AdminMediaLibrary: React.FC<AdminMediaLibraryProps> = ({
                               className="h-8 w-8"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                handleDownload(item);
+                              }}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleCopyUrl(item.url);
                               }}
                             >
