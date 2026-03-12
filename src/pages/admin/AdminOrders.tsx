@@ -73,7 +73,7 @@ type OrderStatus = AdminOrder['status'] | 'all';
 
 const statusFilters: { value: OrderStatus; label: string }[] = [
   { value: 'all', label: 'All Orders' },
-  { value: 'pending_payment', label: 'Pending Payment' },
+  { value: 'pending_payment', label: 'Payment Pending' },
   { value: 'paid_by_user', label: 'Paid by User' },
   { value: 'processing', label: 'Processing' },
   { value: 'completed', label: 'Completed' },
