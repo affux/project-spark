@@ -37,7 +37,7 @@ const statusVariants: Record<string, 'pending' | 'paid' | 'processing' | 'comple
 };
 
 const statusLabels: Record<string, string> = {
-  pending_payment: 'Pending Payment',
+  pending_payment: 'Payment Pending',
   paid_by_user: 'Paid by User',
   processing: 'Processing',
   completed: 'Completed',
