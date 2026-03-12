@@ -597,7 +597,7 @@ const AdminOrders: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending_payment">Pending Payment</SelectItem>
+                        <SelectItem value="pending_payment">Payment Pending</SelectItem>
                         <SelectItem value="paid_by_user">Paid by User</SelectItem>
                         <SelectItem value="processing">Processing</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>

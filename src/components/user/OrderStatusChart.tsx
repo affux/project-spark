@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending_payment: 'Pending Payment',
+  pending_payment: 'Payment Pending',
   paid_by_user: 'Paid',
   processing: 'Processing',
   completed: 'Completed',
