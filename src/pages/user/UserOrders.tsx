@@ -38,7 +38,7 @@ type OrderStatusFilter = 'all' | 'pending_payment' | 'paid_by_user' | 'processin
 
 const statusFilters: { value: OrderStatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'pending_payment', label: 'Payment Pending' },
+  { value: 'pending_payment', label: 'Pending Payment' },
   { value: 'paid_by_user', label: 'Paid' },
   { value: 'processing', label: 'Processing' },
   { value: 'completed', label: 'Completed' },

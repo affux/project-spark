@@ -73,7 +73,7 @@ type OrderStatus = AdminOrder['status'] | 'all';
 
 const statusFilters: { value: OrderStatus; label: string }[] = [
   { value: 'all', label: 'All Orders' },
-  { value: 'pending_payment', label: 'Payment Pending' },
+  { value: 'pending_payment', label: 'Pending Payment' },
   { value: 'paid_by_user', label: 'Paid by User' },
   { value: 'processing', label: 'Processing' },
   { value: 'completed', label: 'Completed' },
@@ -597,7 +597,7 @@ const AdminOrders: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending_payment">Payment Pending</SelectItem>
+                        <SelectItem value="pending_payment">Pending Payment</SelectItem>
                         <SelectItem value="paid_by_user">Paid by User</SelectItem>
                         <SelectItem value="processing">Processing</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
@@ -613,7 +613,7 @@ const AdminOrders: React.FC = () => {
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                          Payment Pending
+                          No Link
                         </Badge>
                       )}
                       {order.payment_link_clicked_at && (
