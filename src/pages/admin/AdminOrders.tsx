@@ -613,7 +613,7 @@ const AdminOrders: React.FC = () => {
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                          No Link
+                          Payment Pending
                         </Badge>
                       )}
                       {order.payment_link_clicked_at && (
